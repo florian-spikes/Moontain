@@ -7,6 +7,7 @@ export interface Client {
     email: string | null;
     address: string | null;
     notes: string | null;
+    emoji: string | null;
     is_archived: boolean;
 }
 
