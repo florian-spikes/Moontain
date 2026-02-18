@@ -1,200 +1,458 @@
 
-import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../components/AuthProvider';
 import {
-    TrendingUp, TrendingDown, Clock, FileText, Calendar,
-    Euro, AlertCircle
+    TrendingUp, Users, FileText, ShoppingBag,
+    Euro, Clock, Calendar, ArrowRight, Plus
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
-import { clsx } from 'clsx';
-import type { DocumentStatus } from '../types';
 
-const statusConfig: Record<DocumentStatus, { label: string; color: string }> = {
-    draft: { label: 'Brouillon', color: 'bg-gray-100 text-gray-800' },
-    sent: { label: 'Envoyé', color: 'bg-blue-100 text-blue-800' },
-    paid: { label: 'Payé', color: 'bg-green-100 text-green-800' },
-    overdue: { label: 'En retard', color: 'bg-red-100 text-red-800' },
-    cancelled: { label: 'Annulé', color: 'bg-gray-100 text-gray-800' },
+// ── Mock Data ──────────────────────────────
+const mockStats = {
+    revenue: { current: 12450, growth: 18.5 },
+    pendingInvoices: { count: 4, amount: 5280 },
+    activeClients: 12,
+    activeServices: 8,
 };
 
+const mockRecentDocs = [
+    { id: '1', number: 'FAC-2026-012', type: 'invoice' as const, status: 'paid' as const, client: 'Studio Graphix', amount: 3200, date: '15 fév' },
+    { id: '2', number: 'DEV-2026-008', type: 'quote' as const, status: 'sent' as const, client: 'La Boulangerie Bio', amount: 1800, date: '13 fév' },
+    { id: '3', number: 'FAC-2026-011', type: 'invoice' as const, status: 'overdue' as const, client: 'TechStart SAS', amount: 4500, date: '10 fév' },
+    { id: '4', number: 'FAC-2026-010', type: 'invoice' as const, status: 'paid' as const, client: 'Immobilia', amount: 2100, date: '8 fév' },
+    { id: '5', number: 'DEV-2026-007', type: 'quote' as const, status: 'draft' as const, client: 'FitCoach Pro', amount: 950, date: '5 fév' },
+];
+
+const mockActivity = [
+    { label: 'Jan', value: 65 },
+    { label: 'Fév', value: 82 },
+    { label: 'Mar', value: 45 },
+    { label: 'Avr', value: 90 },
+    { label: 'Mai', value: 72 },
+    { label: 'Jun', value: 58 },
+    { label: 'Jul', value: 95 },
+    { label: 'Aoû', value: 68 },
+];
+
+const statusStyles: Record<string, { label: string; bg: string; color: string }> = {
+    draft: { label: 'Brouillon', bg: 'rgba(148,163,184,0.1)', color: '#94a3b8' },
+    sent: { label: 'Envoyé', bg: 'rgba(59,130,246,0.1)', color: '#60a5fa' },
+    paid: { label: 'Payé', bg: 'rgba(16,185,129,0.1)', color: '#34d399' },
+    overdue: { label: 'En retard', bg: 'rgba(239,68,68,0.1)', color: '#f87171' },
+};
+
+const fmt = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+
+// ── Component ──────────────────────────────
 export function Dashboard() {
     const { user } = useAuth();
-    const { stats: rawStats, isLoading, error } = useDashboard();
-
-    // Default stats to avoid undefined errors
-    const stats = rawStats || {
-        revenue: { current: 0, last: 0, growth: 0 },
-        pendingInvoices: { count: 0, amount: 0 },
-        expiringServices: 0,
-        recentDocs: []
-    };
-
-    if (isLoading) return <div className="p-8 text-center text-[--text-secondary]">Chargement du tableau de bord...</div>;
-    if (error) return <div className="p-8 text-center text-[--danger]">{(error as Error).message}</div>;
+    const firstName = user?.email?.split('@')[0] ?? 'Utilisateur';
 
     return (
-        <div className="space-y-8 pb-20">
-            <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-[--primary] to-[--secondary] bg-clip-text text-transparent">
-                    Bonjour, {user?.email?.split('@')[0]}
-                </h1>
-                <p className="text-[--text-secondary] mt-1">
-                    Voici un aperçu de votre activité ce mois-ci.
-                </p>
+        <div className="dash">
+            {/* Header */}
+            <div className="dash-header animate-fade-in">
+                <div>
+                    <h1 className="dash-title">Bonjour, {firstName} 👋</h1>
+                    <p className="dash-subtitle">Voici un résumé de votre activité ce mois-ci.</p>
+                </div>
+                <Link to="/documents/new" className="dash-cta">
+                    <Plus size={18} /> Nouveau document
+                </Link>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Revenue */}
-                <div className="card hover:border-[--primary]/50 transition-colors">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-[--text-secondary]">Chiffre d'affaires (Mois)</p>
-                            <h3 className="text-2xl font-bold mt-1">
-                                {stats.revenue.current.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                            </h3>
-                        </div>
-                        <div className={clsx(
-                            "p-2 rounded-full",
-                            stats.revenue.growth >= 0 ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
-                        )}>
-                            <Euro size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4 flex items-center text-sm">
-                        {stats.revenue.growth >= 0 ? (
-                            <TrendingUp size={16} className="text-green-600 mr-1" />
-                        ) : (
-                            <TrendingDown size={16} className="text-red-600 mr-1" />
-                        )}
-                        <span className={stats.revenue.growth >= 0 ? "text-green-600" : "text-red-600"}>
-                            {Math.abs(stats.revenue.growth).toFixed(1)}%
-                        </span>
-                        <span className="text-[--text-muted] ml-1">vs mois dernier</span>
-                    </div>
-                </div>
-
-                {/* Pending Invoices */}
-                <div className="card hover:border-[--primary]/50 transition-colors">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-[--text-secondary]">Factures en attente</p>
-                            <h3 className="text-2xl font-bold mt-1">
-                                {stats.pendingInvoices.count}
-                            </h3>
-                        </div>
-                        <div className="p-2 rounded-full bg-orange-100 text-orange-600">
-                            <Clock size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4 text-sm text-[--text-secondary]">
-                        <span className="font-medium text-[--text-primary]">
-                            {stats.pendingInvoices.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                        </span>
-                        <span className="text-[--text-muted] ml-1">à recevoir</span>
-                    </div>
-                </div>
-
-                {/* Expiring Services */}
-                <div className="card hover:border-[--primary]/50 transition-colors">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-[--text-secondary]">Services expirant (30j)</p>
-                            <h3 className="text-2xl font-bold mt-1">
-                                {stats.expiringServices}
-                            </h3>
-                        </div>
-                        <div className="p-2 rounded-full bg-blue-100 text-blue-600">
-                            <Calendar size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4 text-sm">
-                        <Link to="/services" className="text-[--primary] hover:underline flex items-center gap-1">
-                            Voir les services <ArrowLeft size={14} className="rotate-180" />
-                        </Link>
-                    </div>
-                </div>
+            {/* KPI Grid */}
+            <div className="dash-kpis animate-slide-up">
+                <KpiCard
+                    label="Chiffre d'affaires"
+                    value={fmt(mockStats.revenue.current)}
+                    sub={<><TrendingUp size={14} /> +{mockStats.revenue.growth}% vs mois dernier</>}
+                    subColor="#34d399"
+                    icon={<Euro size={20} />}
+                    iconBg="linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15))"
+                    iconColor="var(--primary)"
+                />
+                <KpiCard
+                    label="Factures en attente"
+                    value={String(mockStats.pendingInvoices.count)}
+                    sub={<>{fmt(mockStats.pendingInvoices.amount)} à recevoir</>}
+                    subColor="var(--text-secondary)"
+                    icon={<Clock size={20} />}
+                    iconBg="rgba(245,158,11,0.12)"
+                    iconColor="#f59e0b"
+                />
+                <KpiCard
+                    label="Clients actifs"
+                    value={String(mockStats.activeClients)}
+                    sub={<Link to="/clients" style={{ color: 'var(--primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8125rem' }}>Voir tous <ArrowRight size={14} /></Link>}
+                    icon={<Users size={20} />}
+                    iconBg="rgba(139,92,246,0.12)"
+                    iconColor="var(--primary)"
+                />
+                <KpiCard
+                    label="Services actifs"
+                    value={String(mockStats.activeServices)}
+                    sub={<Link to="/services" style={{ color: 'var(--secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8125rem' }}>Gérer <ArrowRight size={14} /></Link>}
+                    icon={<Calendar size={20} />}
+                    iconBg="rgba(59,130,246,0.12)"
+                    iconColor="var(--secondary)"
+                />
             </div>
 
-            {/* Recent Activity */}
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-[--bg-surface] p-6 rounded-xl border border-[--border]">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="font-semibold text-lg flex items-center gap-2">
-                            <FileText size={20} className="text-[--primary]" />
-                            Documents récents
-                        </h3>
-                        <Link to="/documents" className="text-sm text-[--primary] hover:underline">
-                            Tout voir
-                        </Link>
+            {/* Two-column grid */}
+            <div className="dash-grid" style={{ animationDelay: '0.15s' }}>
+                {/* Activity Chart */}
+                <div className="dash-card animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                    <h3 className="dash-card-title">Activité mensuelle</h3>
+                    <div className="dash-chart">
+                        {mockActivity.map(bar => (
+                            <div key={bar.label} className="dash-bar-col">
+                                <div className="dash-bar-track">
+                                    <div
+                                        className="dash-bar-fill"
+                                        style={{ height: `${bar.value}%` }}
+                                    />
+                                </div>
+                                <span className="dash-bar-label">{bar.label}</span>
+                            </div>
+                        ))}
                     </div>
+                </div>
 
-                    <div className="space-y-4">
-                        {stats.recentDocs.map((doc: any) => (
-                            <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-[--bg-surface-hover] transition-colors border border-transparent hover:border-[--border]">
-                                <div className="flex items-center gap-3">
-                                    <div className={clsx(
-                                        "w-2 h-2 rounded-full",
-                                        doc.type === 'invoice' ? "bg-blue-500" : "bg-purple-500"
-                                    )} />
+                {/* Recent Documents */}
+                <div className="dash-card animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                        <h3 className="dash-card-title" style={{ marginBottom: 0 }}>Documents récents</h3>
+                        <Link to="/documents" style={{ fontSize: '0.8125rem', color: 'var(--primary)', textDecoration: 'none' }}>Tout voir</Link>
+                    </div>
+                    <div className="dash-doc-list">
+                        {mockRecentDocs.map(doc => (
+                            <div key={doc.id} className="dash-doc-row">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <div className="dash-doc-dot" style={{ background: doc.type === 'invoice' ? 'var(--secondary)' : 'var(--primary)' }} />
                                     <div>
-                                        <Link to={`/documents/${doc.id}`} className="font-medium hover:text-[--primary] transition-colors">
-                                            {doc.number || 'Brouillon'}
-                                        </Link>
-                                        <p className="text-xs text-[--text-secondary]">
-                                            {doc.client?.name} • {format(parseISO(doc.date), 'd MMM', { locale: fr })}
-                                        </p>
+                                        <div className="dash-doc-number">{doc.number}</div>
+                                        <div className="dash-doc-client">{doc.client} · {doc.date}</div>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="font-medium text-sm">
-                                        {doc.total_amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                                    </p>
-                                    <span className={clsx(
-                                        "text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wide",
-                                        statusConfig[doc.status as DocumentStatus]?.color
-                                    )}>
-                                        {statusConfig[doc.status as DocumentStatus]?.label}
+                                <div style={{ textAlign: 'right' }}>
+                                    <div className="dash-doc-amount">{fmt(doc.amount)}</div>
+                                    <span className="dash-doc-status" style={{
+                                        background: statusStyles[doc.status]?.bg,
+                                        color: statusStyles[doc.status]?.color,
+                                    }}>
+                                        {statusStyles[doc.status]?.label}
                                     </span>
                                 </div>
                             </div>
                         ))}
-                        {stats.recentDocs.length === 0 && (
-                            <p className="text-[--text-secondary] text-sm text-center py-4">
-                                Aucune activité récente.
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                {/* Quick Actions / Placeholders */}
-                <div className="bg-[--bg-surface] p-6 rounded-xl border border-[--border]">
-                    <h3 className="font-semibold text-lg mb-6 flex items-center gap-2">
-                        <AlertCircle size={20} className="text-orange-500" />
-                        Actions rapides
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                        <Link to="/documents/new" className="flex flex-col items-center justify-center p-4 rounded-lg border border-[--border] hover:border-[--primary] hover:bg-[--bg-surface-hover] transition-all group">
-                            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                <FileText size={20} />
-                            </div>
-                            <span className="text-sm font-medium">Nouveau Devis</span>
-                        </Link>
-
-                        <Link to="/clients/new" className="flex flex-col items-center justify-center p-4 rounded-lg border border-[--border] hover:border-[--primary] hover:bg-[--bg-surface-hover] transition-all group">
-                            <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                <LayoutGrid size={20} />
-                            </div>
-                            <span className="text-sm font-medium">Nouveau Client</span>
-                        </Link>
                     </div>
                 </div>
             </div>
+
+            {/* Quick Actions */}
+            <div className="dash-actions animate-slide-up" style={{ animationDelay: '0.3s' }}>
+                <ActionCard
+                    icon={<FileText size={22} />}
+                    label="Nouveau Devis"
+                    description="Créer un devis pour un client"
+                    href="/documents/new"
+                    color="var(--secondary)"
+                />
+                <ActionCard
+                    icon={<Users size={22} />}
+                    label="Nouveau Client"
+                    description="Ajouter un client à votre base"
+                    href="/clients/new"
+                    color="var(--primary)"
+                />
+                <ActionCard
+                    icon={<ShoppingBag size={22} />}
+                    label="Catalogue"
+                    description="Gérer vos prestations"
+                    href="/catalog"
+                    color="var(--accent)"
+                />
+            </div>
+
+            <style>{dashStyles}</style>
         </div>
     );
 }
 
-// Missing icon import
-import { LayoutGrid, ArrowLeft } from 'lucide-react';
+// ── Sub-components ─────────────────────────
+function KpiCard({ label, value, sub, subColor, icon, iconBg, iconColor }: {
+    label: string; value: string; sub: React.ReactNode; subColor?: string;
+    icon: React.ReactNode; iconBg: string; iconColor: string;
+}) {
+    return (
+        <div className="kpi-card">
+            <div className="kpi-top">
+                <div>
+                    <div className="kpi-label">{label}</div>
+                    <div className="kpi-value">{value}</div>
+                </div>
+                <div className="kpi-icon" style={{ background: iconBg, color: iconColor }}>{icon}</div>
+            </div>
+            <div className="kpi-sub" style={{ color: subColor }}>{sub}</div>
+        </div>
+    );
+}
+
+function ActionCard({ icon, label, description, href, color }: {
+    icon: React.ReactNode; label: string; description: string; href: string; color: string;
+}) {
+    return (
+        <Link to={href} className="action-card" style={{ textDecoration: 'none' }}>
+            <div className="action-icon" style={{ background: `${color}15`, color }}>{icon}</div>
+            <div className="action-label">{label}</div>
+            <div className="action-desc">{description}</div>
+        </Link>
+    );
+}
+
+// ── Styles ──────────────────────────────────
+const dashStyles = `
+    .dash {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .dash-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .dash-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
+    .dash-subtitle {
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+        font-size: 0.9375rem;
+    }
+    .dash-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        font-weight: 600;
+        font-size: 0.8125rem;
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        transition: all var(--transition-smooth);
+    }
+    .dash-cta:hover {
+        box-shadow: 0 4px 16px rgba(139,92,246,0.3);
+        transform: translateY(-1px);
+    }
+
+    /* ── KPIs ─────────── */
+    .dash-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .kpi-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        padding: 1.25rem;
+        transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+    }
+    .kpi-card:hover {
+        border-color: var(--border-light);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    .kpi-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+    .kpi-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 0.375rem;
+    }
+    .kpi-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    .kpi-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .kpi-sub {
+        font-size: 0.8125rem;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    /* ── Grid ─────────── */
+    .dash-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .dash-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        padding: 1.5rem;
+    }
+    .dash-card-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        margin-bottom: 1.25rem;
+    }
+
+    /* Chart */
+    .dash-chart {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.75rem;
+        height: 160px;
+    }
+    .dash-bar-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        height: 100%;
+    }
+    .dash-bar-track {
+        flex: 1;
+        width: 100%;
+        max-width: 32px;
+        background: var(--bg-surface-hover);
+        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: flex-end;
+    }
+    .dash-bar-fill {
+        width: 100%;
+        border-radius: 6px;
+        background: linear-gradient(to top, var(--primary), var(--secondary));
+        transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        min-height: 4px;
+    }
+    .dash-bar-label {
+        font-size: 0.6875rem;
+        color: var(--text-muted);
+    }
+
+    /* Documents */
+    .dash-doc-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .dash-doc-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.625rem 0.75rem;
+        border-radius: var(--radius-md);
+        transition: background var(--transition-fast);
+    }
+    .dash-doc-row:hover {
+        background: var(--bg-surface-hover);
+    }
+    .dash-doc-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .dash-doc-number {
+        font-size: 0.8125rem;
+        font-weight: 600;
+    }
+    .dash-doc-client {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 1px;
+    }
+    .dash-doc-amount {
+        font-size: 0.8125rem;
+        font-weight: 600;
+    }
+    .dash-doc-status {
+        display: inline-block;
+        font-size: 0.625rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 2px 8px;
+        border-radius: 999px;
+        margin-top: 2px;
+    }
+
+    /* Actions */
+    .dash-actions {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+    .action-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        padding: 1.25rem;
+        text-align: center;
+        transition: all var(--transition-smooth);
+        display: block;
+        color: var(--text-primary);
+    }
+    .action-card:hover {
+        border-color: var(--border-light);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    .action-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.75rem;
+    }
+    .action-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    .action-desc {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    /* ── Responsive ───── */
+    @media (max-width: 900px) {
+        .dash-kpis { grid-template-columns: repeat(2, 1fr); }
+        .dash-grid { grid-template-columns: 1fr; }
+        .dash-actions { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+        .dash-kpis { grid-template-columns: 1fr; }
+    }
+`;
