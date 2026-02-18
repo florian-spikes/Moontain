@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom';
 const itemSchema = z.object({
     name: z.string().min(1, 'Le nom est requis'),
     description: z.string().optional(),
-    unit_price: z.number({ invalid_type_error: 'Le prix doit être un nombre' }).min(0, 'Le prix doit être positif'),
+    unit_price: z.number().min(0, 'Le prix doit être positif'),
     unit: z.string().optional(),
 });
 

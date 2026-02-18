@@ -1,6 +1,6 @@
 
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, ShoppingBag, Server, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, ShoppingBag, Server, LogOut } from 'lucide-react';
 import { clsx } from 'clsx';
 import { supabase } from '../lib/supabase';
 

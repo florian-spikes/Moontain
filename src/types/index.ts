@@ -42,3 +42,45 @@ export interface CatalogItem {
 
 export type NewCatalogItem = Omit<CatalogItem, 'id' | 'created_at'>;
 
+export type DocumentStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+export type DocumentType = 'quote' | 'invoice';
+
+export interface DocumentLine {
+    id: string;
+    document_id: string;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    total: number;
+}
+
+export interface Document {
+    id: string;
+    created_at: string;
+    updated_at: string;
+    client_id: string | null;
+    type: DocumentType;
+    status: DocumentStatus;
+    number: string | null;
+    date: string | null;
+    due_date: string | null;
+    total_amount: number;
+    public_url: string | null; // PDF URL
+    client?: Client;
+    lines?: DocumentLine[];
+}
+
+// For creation, we might not have number or public_url
+export interface NewDocument {
+    client_id: string;
+    type: DocumentType;
+    date: string;
+    due_date: string;
+    lines: {
+        description: string;
+        quantity: number;
+        unit_price: number;
+    }[];
+}
+
+

@@ -4,12 +4,16 @@ import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-
 import { AuthProvider, useAuth } from './components/AuthProvider';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { Login } from './pages/Login';
-import { Placeholder } from './pages/Placeholder';
+
 import { ClientsList } from './pages/Clients/ClientsList';
 import { NewClient } from './pages/Clients/NewClient';
 import { ServicesList } from './pages/Services/ServicesList';
 import { CatalogList } from './pages/Catalog/CatalogList';
 import { NewCatalogItem } from './pages/Catalog/NewCatalogItem';
+import { DocumentsList } from './pages/Documents/DocumentsList';
+import { NewDocument } from './pages/Documents/NewDocument';
+import { DocumentDetail } from './pages/Documents/DocumentDetail';
+import { Dashboard } from './pages/Dashboard';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
@@ -62,14 +66,22 @@ export default function App() {
             <DashboardLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<Placeholder title="Dashboard" />} />
+          <Route index element={<Dashboard />} />
+
+
 
           <Route path="clients" element={<ClientsList />} />
           <Route path="clients/new" element={<NewClient />} />
-          <Route path="documents" element={<Placeholder title="Documents" />} />
+
           <Route path="catalog" element={<CatalogList />} />
           <Route path="catalog/new" element={<NewCatalogItem />} />
+
+          <Route path="documents" element={<DocumentsList />} />
+          <Route path="documents/new" element={<NewDocument />} />
+          <Route path="documents/:id" element={<DocumentDetail />} />
+
           <Route path="services" element={<ServicesList />} />
+
         </Route>
       </Routes>
     </AuthProvider>
