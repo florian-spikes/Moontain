@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { Resend } from "npm:resend@2.0.0";
+import { getEmailHtml } from "./templates.ts";
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 const corsHeaders = {
@@ -20,7 +21,7 @@ serve(async (req) => {
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         );
 
-        const { document_id, type } = await req.json();
+        const { document_id, type, log_id } = await req.json();
 
         if (!document_id || !type) {
             throw new Error('Missing document_id or type');
@@ -37,73 +38,62 @@ serve(async (req) => {
         if (!doc.client?.email) throw new Error('Client has no email');
         if (!doc.public_url) throw new Error('Document PDF not generated');
 
-        // 2. Prepare Email
-        let subject = '';
-        let html = '';
+        // 2. Prepare Email HTML
+        const html = getEmailHtml(type, doc);
 
-        const docTypeLabel = doc.type === 'quote' ? 'Devis' : 'Facture';
-        const amount = doc.total_amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+        let subject = '';
+        const docLabel = doc.number || 'Brouillon';
 
         switch (type) {
-            case 'quote':
-                subject = `Votre devis ${doc.number || ''} de Moontain`;
-                html = `<p>Bonjour ${doc.client.name},</p>
-                    <p>Veuillez trouver ci-joint votre devis d'un montant de <strong>${amount}</strong>.</p>
-                    <p>N'hésitez pas à revenir vers nous pour toute question.</p>
-                    <p>Cordialement,<br>L'équipe Moontain</p>`;
-                break;
-            case 'invoice':
-                subject = `Votre facture ${doc.number || ''} de Moontain`;
-                html = `<p>Bonjour ${doc.client.name},</p>
-                    <p>Veuillez trouver ci-joint votre facture d'un montant de <strong>${amount}</strong>.</p>
-                    <p>Merci de votre confiance.</p>
-                    <p>Cordialement,<br>L'équipe Moontain</p>`;
-                break;
-            case 'reminder':
-                subject = `Rappel : Facture ${doc.number || ''} en attente`;
-                html = `<p>Bonjour ${doc.client.name},</p>
-                    <p>Sauf erreur de notre part, la facture ${doc.number} d'un montant de <strong>${amount}</strong> est toujours en attente de règlement.</p>
-                    <p>Merci de faire le nécessaire rapidement.</p>
-                    <p>Cordialement,<br>L'équipe Moontain</p>`;
-                break;
-            case 'resend':
-                subject = `Copie : ${docTypeLabel} ${doc.number || ''}`;
-                html = `<p>Bonjour ${doc.client.name},</p>
-                    <p>Voici une copie de votre ${docTypeLabel.toLowerCase()}.</p>
-                    <p>Cordialement,<br>L'équipe Moontain</p>`;
-                break;
-            default:
-                throw new Error('Invalid email type');
+            case 'quote': subject = `Votre devis ${docLabel} de Moontain`; break;
+            case 'invoice': subject = `Votre facture ${docLabel} de Moontain`; break;
+            case 'reminder': subject = `Rappel : Facture ${docLabel} en attente`; break;
+            case 'resend': subject = `Copie : ${doc.type === 'quote' ? 'Devis' : 'Facture'} ${docLabel}`; break;
         }
 
         // 3. Send Email
         const { data: emailData, error: emailError } = await resend.emails.send({
-            from: 'Moontain <factures@app.moontain.studio>', // Verified domain
+            from: 'Moontain <factures@app.moontain.studio>',
             to: [doc.client.email],
             subject,
             html,
             attachments: [
                 {
-                    filename: `${docTypeLabel}_${doc.number || 'brouillon'}.pdf`,
+                    filename: `${doc.type === 'quote' ? 'Devis' : 'Facture'}_${docLabel}.pdf`,
                     path: doc.public_url,
                 },
             ],
         });
 
-        if (emailError) throw emailError;
+        if (emailError) {
+            // Update log to error if log_id provided
+            if (log_id) {
+                await supabaseClient.from('email_logs').update({
+                    status: 'error',
+                    error: JSON.stringify(emailError)
+                }).eq('id', log_id);
+            }
+            throw emailError;
+        }
 
-        // 4. Log Email
-        await supabaseClient
-            .from('email_logs')
-            .insert({
-                type: type,
-                document_id: document_id,
-                status: 'sent',
-                recipient: doc.client.email,
-                subject
+        // 4. Log Email (Update existing log)
+        if (log_id) {
+            await supabaseClient
+                .from('email_logs')
+                .update({
+                    status: 'sent',
+                    recipient: doc.client.email,
+                    subject
+                })
+                .eq('id', log_id);
+        } else {
+            // Fallback: insert if no log_id provided
+            await supabaseClient.from('email_logs').insert({
+                type, document_id, status: 'sent', recipient: doc.client.email, subject
             });
+        }
 
-        // 5. Update Status if Invoice
+        // 5. Update Status if Invoice sent for first time
         if (doc.type === 'invoice' && doc.status === 'draft' && type === 'invoice') {
             await supabaseClient
                 .from('documents')

@@ -93,15 +93,38 @@ export function useDocuments() {
     });
 
     const sendEmail = useMutation({
-        mutationFn: async ({ id, type }: { id: string, type: 'quote' | 'invoice' | 'reminder' | 'resend' }) => {
+        mutationFn: async ({ id, type, recipient, number }: { id: string, type: 'quote' | 'invoice' | 'reminder' | 'resend', recipient: string, number: string }) => {
+            // 1. Insert "Sending..." log immediately
+            const { data: log, error: logError } = await supabase
+                .from('email_logs')
+                .insert({
+                    type,
+                    document_id: id,
+                    status: 'pending', // or 'sending' if your schema allows
+                    recipient,
+                    subject: `${type === 'quote' ? 'Devis' : 'Facture'} ${number}`
+                })
+                .select()
+                .single();
+
+            if (logError) throw logError;
+
+            // 2. Call function with log_id
             const { data, error } = await supabase.functions.invoke('send-document-email', {
-                body: { document_id: id, type }
+                body: { document_id: id, type, log_id: log.id }
             });
-            if (error) throw error;
+
+            if (error) {
+                // Return generic error, the function might have updated the log to error already, 
+                // but if invoke failed (network), we should update it here.
+                await supabase.from('email_logs').update({ status: 'error', error: error.message }).eq('id', log.id);
+                throw error;
+            }
             return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['document'] });
+            // email-logs query will be updated via Realtime or invalidate
             queryClient.invalidateQueries({ queryKey: ['email-logs'] });
         }
     });

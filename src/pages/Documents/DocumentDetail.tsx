@@ -1,6 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { useDocuments } from '../../hooks/useDocuments';
 import { useGeneratePdf } from '../../hooks/useGeneratePdf';
 import { format, parseISO } from 'date-fns';
@@ -22,12 +24,37 @@ const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: s
 
 export function DocumentDetail() {
     const { id } = useParams<{ id: string }>();
+    const queryClient = useQueryClient();
     const { getDocument, sendEmail, updateStatus, updateDocument, getEmailLogs } = useDocuments();
     const generatePdf = useGeneratePdf();
     const { data: doc, isLoading, error } = getDocument(id!);
     const { data: emailLogs = [] } = getEmailLogs(id!);
     const [isEditing, setIsEditing] = useState(false);
     const [editLines, setEditLines] = useState<{ description: string; quantity: number; unit_price: number }[]>([]);
+
+    // Subscribe to Email Logs changes in Realtime
+    useEffect(() => {
+        if (!id) return;
+        const channel = supabase
+            .channel(`email_logs:${id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'email_logs',
+                    filter: `document_id=eq.${id}`
+                },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ['email-logs', id] });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [id, queryClient]);
 
     if (isLoading) return (
         <div className="dd-loading animate-fade-in">
@@ -104,7 +131,16 @@ export function DocumentDetail() {
                     {/* 4. Envoyer */}
                     {doc.public_url && doc.status === 'draft' && (
                         <button
-                            onClick={() => { if (confirm('Envoyer le document par email au client ?')) sendEmail.mutate({ id: doc.id, type: doc.type }); }}
+                            onClick={() => {
+                                if (confirm('Envoyer le document par email au client ?')) {
+                                    sendEmail.mutate({
+                                        id: doc.id,
+                                        type: doc.type,
+                                        recipient: doc.client?.email || '',
+                                        number: doc.number || ''
+                                    });
+                                }
+                            }}
                             disabled={isSendingEmail}
                             className="dd-btn dd-btn-primary"
                         >
@@ -261,7 +297,16 @@ export function DocumentDetail() {
                         )}
                         {(doc.status === 'sent' || doc.status === 'overdue') && (
                             <button
-                                onClick={() => { if (confirm("Renvoyer l'email ?")) sendEmail.mutate({ id: doc.id, type: 'resend' }); }}
+                                onClick={() => {
+                                    if (confirm("Renvoyer l'email ?")) {
+                                        sendEmail.mutate({
+                                            id: doc.id,
+                                            type: 'resend',
+                                            recipient: doc.client?.email || '',
+                                            number: doc.number || ''
+                                        });
+                                    }
+                                }}
                                 className="dd-sidebar-link"
                             >
                                 Renvoyer l'email
