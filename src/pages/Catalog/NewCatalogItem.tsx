@@ -387,5 +387,12 @@ const formStyles = `
     .frm-btn-submit:hover:not(:disabled) { box-shadow: 0 4px 16px rgba(139,92,246,0.3); transform: translateY(-1px); }
     .frm-btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
     .animate-spin { animation: spin 0.8s linear infinite; }
+    @media (max-width: 700px) {
+        .frm-row-split { flex-direction: column; gap: 1.5rem; }
+        .frm-summary { flex-direction: column; align-items: flex-start; gap: 1rem; }
+        .frm-summary-sep { display: none; }
+        .frm-actions { flex-direction: column-reverse; }
+        .frm-btn-cancel, .frm-btn-submit { width: 100%; justify-content: center; }
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
 `;

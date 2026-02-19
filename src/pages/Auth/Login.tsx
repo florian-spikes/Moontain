@@ -385,6 +385,9 @@ export default function Login() {
                         padding: 2rem 1.5rem;
                     }
                 }
+                @media (max-width: 480px) {
+                    .login-panel-left, .login-panel-right { padding: 1.5rem 1rem; }
+                }
             `}</style>
         </div>
     );

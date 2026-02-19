@@ -438,4 +438,7 @@ const registerStyles = `
         .register-dots { display: none; }
         .register-panel-right { padding: 2rem 1.5rem; }
     }
+    @media (max-width: 480px) {
+        .register-panel-left, .register-panel-right { padding: 1.5rem 1rem; }
+    }
 `;

@@ -285,5 +285,11 @@ export const formStyles = `
     .animate-spin {
         animation: spin 0.8s linear infinite;
     }
+    @media (max-width: 600px) {
+        .frm-row-emoji { flex-direction: column; align-items: center; }
+        .frm-actions { flex-direction: column-reverse; }
+        .frm-btn-cancel, .frm-btn-submit { width: 100%; justify-content: center; }
+        .frm-btn-submit:hover:not(:disabled) { transform: none; }
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
 `;
