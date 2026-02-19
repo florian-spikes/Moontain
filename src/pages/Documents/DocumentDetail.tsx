@@ -1,6 +1,7 @@
 
 import { useParams, Link } from 'react-router-dom';
 import { useDocuments } from '../../hooks/useDocuments';
+import { useGeneratePdf } from '../../hooks/useGeneratePdf';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -19,7 +20,8 @@ const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: s
 
 export function DocumentDetail() {
     const { id } = useParams<{ id: string }>();
-    const { getDocument, generatePdf, sendEmail, updateStatus, getEmailLogs } = useDocuments();
+    const { getDocument, sendEmail, updateStatus, getEmailLogs } = useDocuments();
+    const generatePdf = useGeneratePdf();
     const { data: doc, isLoading, error } = getDocument(id!);
     const { data: emailLogs = [] } = getEmailLogs(id!);
 
@@ -59,7 +61,7 @@ export function DocumentDetail() {
                 </div>
                 <div className="dd-actions">
                     {!doc.public_url && (
-                        <button onClick={() => generatePdf.mutate(doc.id)} disabled={isGeneratingPdf} className="dd-btn dd-btn-secondary">
+                        <button onClick={() => generatePdf.mutate(doc)} disabled={isGeneratingPdf} className="dd-btn dd-btn-secondary">
                             {isGeneratingPdf ? <Loader2 className="animate-spin" size={16} /> : <Printer size={16} />}
                             Générer PDF
                         </button>
