@@ -78,7 +78,7 @@ serve(async (req) => {
 
         // 3. Send Email
         const { data: emailData, error: emailError } = await resend.emails.send({
-            from: 'Moontain <factures@moontain.fr>', // Configured domain
+            from: 'Moontain <factures@app.moontain.studio>', // Verified domain
             to: [doc.client.email],
             subject,
             html,
