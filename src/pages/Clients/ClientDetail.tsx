@@ -300,5 +300,16 @@ const cdStyles = `
 
     @media (max-width: 768px) {
         .cd-kpis { grid-template-columns: repeat(2, 1fr); }
+        .cd-header { flex-direction: column; align-items: flex-start; }
+        .cd-header-left { flex-wrap: wrap; }
+        .cd-name { font-size: 1.25rem; }
+        .cd-meta { flex-wrap: wrap; gap: 0.5rem; }
+        .cd-meta span { margin-left: 0 !important; }
+        .cd-kpi:hover { transform: none; }
+        .cd-card { padding: 1rem; }
+        .cd-table th:nth-child(3), .cd-table td:nth-child(3) { display: none; }
+    }
+    @media (max-width: 480px) {
+        .cd-kpis { grid-template-columns: 1fr; }
     }
 `;

@@ -1,8 +1,9 @@
 
+import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, Users, FileText, ShoppingBag, Server,
-    LogOut, Mountain, ChevronRight
+    LogOut, Mountain, ChevronRight, Menu, X
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { supabase } from '../lib/supabase';
@@ -29,20 +30,25 @@ const navSections = [
 export function DashboardLayout() {
     const location = useLocation();
     const { user } = useAuth();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const initials = user?.email
         ? user.email.split('@')[0].slice(0, 2).toUpperCase()
         : '??';
 
-    // Find current page title for breadcrumb
     const currentItem = navSections
         .flatMap(s => s.items)
         .find(item => item.href === location.pathname || (item.href !== '/' && location.pathname.startsWith(item.href)));
 
+    const closeSidebar = () => setSidebarOpen(false);
+
     return (
         <div className="layout">
+            {/* ── Mobile overlay ──────── */}
+            {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
+
             {/* ── Sidebar ──────────────────── */}
-            <aside className="sidebar">
+            <aside className={clsx('sidebar', sidebarOpen && 'sidebar-open')}>
                 {/* Brand */}
                 <div className="sidebar-brand">
                     <div className="sidebar-brand-icon">
@@ -52,6 +58,10 @@ export function DashboardLayout() {
                         <div className="sidebar-brand-name">MOONTAIN</div>
                         <div className="sidebar-brand-sub">CRM Freelance</div>
                     </div>
+                    {/* Close button on mobile */}
+                    <button className="sidebar-close" onClick={closeSidebar}>
+                        <X size={20} />
+                    </button>
                 </div>
 
                 {/* Nav */}
@@ -68,6 +78,7 @@ export function DashboardLayout() {
                                         key={item.href}
                                         to={item.href}
                                         className={clsx('sidebar-link', isActive && 'sidebar-link-active')}
+                                        onClick={closeSidebar}
                                     >
                                         <Icon size={18} />
                                         <span>{item.label}</span>
@@ -97,14 +108,19 @@ export function DashboardLayout() {
             {/* ── Main ─────────────────────── */}
             <main className="main-content">
                 <header className="main-header glass">
-                    <div className="breadcrumb">
-                        <span className="breadcrumb-root">Moontain</span>
-                        {currentItem && (
-                            <>
-                                <ChevronRight size={14} className="breadcrumb-sep" />
-                                <span className="breadcrumb-current">{currentItem.label}</span>
-                            </>
-                        )}
+                    <div className="header-left">
+                        <button className="hamburger" onClick={() => setSidebarOpen(true)}>
+                            <Menu size={22} />
+                        </button>
+                        <div className="breadcrumb">
+                            <span className="breadcrumb-root">Moontain</span>
+                            {currentItem && (
+                                <>
+                                    <ChevronRight size={14} className="breadcrumb-sep" />
+                                    <span className="breadcrumb-current">{currentItem.label}</span>
+                                </>
+                            )}
+                        </div>
                     </div>
                     <div className="header-avatar">{initials}</div>
                 </header>
@@ -131,6 +147,13 @@ export function DashboardLayout() {
                     display: flex;
                     flex-direction: column;
                     overflow-y: auto;
+                    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                .sidebar-close { display: none; }
+
+                .sidebar-overlay {
+                    display: none;
                 }
 
                 .sidebar-brand {
@@ -281,6 +304,7 @@ export function DashboardLayout() {
                     display: flex;
                     flex-direction: column;
                     overflow: hidden;
+                    min-width: 0;
                 }
                 .main-header {
                     height: 56px;
@@ -293,6 +317,22 @@ export function DashboardLayout() {
                     top: 0;
                     z-index: 10;
                     flex-shrink: 0;
+                }
+                .header-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                }
+                .hamburger {
+                    display: none;
+                    padding: 0.375rem;
+                    border-radius: var(--radius-md);
+                    color: var(--text-secondary);
+                    transition: all var(--transition-fast);
+                }
+                .hamburger:hover {
+                    background: var(--bg-surface-hover);
+                    color: var(--text-primary);
                 }
                 .breadcrumb {
                     display: flex;
@@ -328,6 +368,61 @@ export function DashboardLayout() {
                     flex: 1;
                     overflow-y: auto;
                     padding: 2rem;
+                }
+
+                /* ── Mobile ────────────── */
+                @media (max-width: 768px) {
+                    .sidebar {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        bottom: 0;
+                        z-index: 100;
+                        transform: translateX(-100%);
+                        box-shadow: none;
+                    }
+                    .sidebar-open {
+                        transform: translateX(0);
+                        box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+                    }
+                    .sidebar-overlay {
+                        display: block;
+                        position: fixed;
+                        inset: 0;
+                        z-index: 99;
+                        background: rgba(0,0,0,0.5);
+                        backdrop-filter: blur(2px);
+                    }
+                    .sidebar-close {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-left: auto;
+                        padding: 0.25rem;
+                        border-radius: var(--radius-md);
+                        color: var(--text-muted);
+                        transition: all var(--transition-fast);
+                    }
+                    .sidebar-close:hover {
+                        color: var(--text-primary);
+                    }
+                    .hamburger {
+                        display: flex;
+                    }
+                    .main-header {
+                        padding: 0 1rem;
+                        height: 52px;
+                    }
+                    .main-body {
+                        padding: 1rem;
+                    }
+                    .header-avatar {
+                        display: none;
+                    }
+                    .sidebar-link {
+                        padding: 0.75rem;
+                        font-size: 0.875rem;
+                    }
                 }
             `}</style>
         </div>

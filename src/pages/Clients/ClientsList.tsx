@@ -396,7 +396,12 @@ const clStyles = `
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (max-width: 600px) {
+    @media (max-width: 768px) {
         .cls-grid { grid-template-columns: 1fr; }
+        .cls-header { flex-direction: column; align-items: stretch; }
+        .cls-title { font-size: 1.375rem; }
+        .cls-cta { justify-content: center; text-align: center; }
+        .cls-card:hover { transform: none; }
+        .cls-card-bottom { flex-wrap: wrap; gap: 0.5rem; }
     }
 `;

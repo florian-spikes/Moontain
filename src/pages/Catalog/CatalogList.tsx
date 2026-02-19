@@ -232,4 +232,13 @@ const ctStyles = `
         border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+        .ct-header { flex-direction: column; align-items: stretch; }
+        .ct-title { font-size: 1.375rem; }
+        .ct-cta { justify-content: center; text-align: center; }
+        .ct-grid { grid-template-columns: 1fr; }
+        .ct-card:hover { transform: none; }
+        .ct-card-bottom { flex-wrap: wrap; }
+    }
 `;

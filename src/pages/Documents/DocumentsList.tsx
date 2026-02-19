@@ -379,9 +379,17 @@ const dlStyles = `
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (max-width: 700px) {
+    @media (max-width: 768px) {
         .dl-stats { grid-template-columns: repeat(2, 1fr); }
-        .dl-row { flex-direction: column; align-items: flex-start; }
+        .dl-header { flex-direction: column; align-items: stretch; }
+        .dl-title { font-size: 1.375rem; }
+        .dl-cta { justify-content: center; text-align: center; }
+        .dl-row { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
         .dl-row-right { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+        .dl-row:hover { transform: none; }
+        .dl-filters { flex-wrap: wrap; }
+    }
+    @media (max-width: 480px) {
+        .dl-stats { grid-template-columns: 1fr; }
     }
 `;

@@ -388,8 +388,20 @@ const ddStyles = `
     .animate-spin { animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (max-width: 800px) {
+    @media (max-width: 768px) {
         .dd-layout { grid-template-columns: 1fr; }
+        .dd-header { flex-direction: column; align-items: flex-start; }
+        .dd-title { font-size: 1.125rem; }
+        .dd-actions {
+            width: 100%; overflow-x: auto; flex-wrap: nowrap;
+            -webkit-overflow-scrolling: touch; padding-bottom: 0.25rem;
+        }
+        .dd-btn { white-space: nowrap; flex-shrink: 0; }
+        .dd-main { padding: 1rem; }
+        .dd-info-row { flex-direction: column; gap: 0.75rem; }
+        .dd-info-right { text-align: left; }
+        .dd-table-wrap { margin: 0 -1rem; padding: 0 1rem; }
+        .dd-total-val { font-size: 1.25rem; }
     }
 
     /* 3-dots menu */

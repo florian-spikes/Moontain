@@ -119,6 +119,7 @@ button {
   background: var(--primary);
   color: white;
 }
+
 .btn-primary:hover {
   background: var(--primary-hover);
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
@@ -129,6 +130,7 @@ button {
   color: var(--text-primary);
   border: 1px solid var(--border-light);
 }
+
 .btn-secondary:hover {
   background: var(--border-light);
 }
@@ -155,7 +157,9 @@ button {
 
 /* ─── Form inputs ────────────────────────── */
 
-input, textarea, select {
+input,
+textarea,
+select {
   width: 100%;
   padding: var(--space-3) var(--space-4);
   background: var(--bg-app);
@@ -167,13 +171,16 @@ input, textarea, select {
   transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
 }
 
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
 }
 
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--text-muted);
 }
 
@@ -188,23 +195,49 @@ label {
 /* ─── Animations ─────────────────────────── */
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-16px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); }
-  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.2); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.2);
+  }
 }
 
 .animate-fade-in {
@@ -236,4 +269,49 @@ label {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+/* ─── Mobile Responsive ──────────────────── */
+
+@media (max-width: 768px) {
+
+  /* Touch-friendly tap targets */
+  .btn,
+  button {
+    min-height: 44px;
+  }
+
+  /* Form inputs – prevent iOS zoom on focus (requires >=16px) */
+  input,
+  textarea,
+  select {
+    font-size: 1rem;
+  }
+
+  /* Cards: reduce padding */
+  .card {
+    padding: var(--space-4);
+  }
+
+  /* Container: tighter on mobile */
+  .container {
+    padding: 0 var(--space-3);
+  }
+
+  /* Hide scrollbar on mobile */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  * {
+    scrollbar-width: none;
+  }
+
+  /* Prevent text overflow */
+  h1,
+  h2,
+  h3 {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
 }
