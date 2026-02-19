@@ -63,7 +63,7 @@ export function NewDocument() {
 
     const onSubmit = async (data: FormData) => {
         try {
-            await createDocument.mutateAsync({
+            const newDoc = await createDocument.mutateAsync({
                 client_id: data.client_id,
                 type: data.type,
                 date: data.date,
@@ -74,7 +74,7 @@ export function NewDocument() {
                     unit_price: line.unit_price
                 }))
             });
-            navigate('/documents');
+            navigate(`/documents/${newDoc.id}`);
         } catch (error) {
             console.error('Failed', error);
         }

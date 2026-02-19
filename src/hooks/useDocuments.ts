@@ -124,6 +124,37 @@ export function useDocuments() {
         }
     });
 
+    const updateDocument = useMutation({
+        mutationFn: async ({ id, date, due_date, lines }: {
+            id: string;
+            date?: string;
+            due_date?: string;
+            lines?: { description: string; quantity: number; unit_price: number }[];
+        }) => {
+            const updates: any = {};
+            if (date) updates.date = date;
+            if (due_date) updates.due_date = due_date;
+            if (lines) {
+                updates.total_amount = lines.reduce((acc, l) => acc + l.quantity * l.unit_price, 0);
+            }
+            const { error } = await supabase.from('documents').update(updates).eq('id', id);
+            if (error) throw error;
+
+            if (lines) {
+                // Delete old lines then insert new
+                await supabase.from('document_lines').delete().eq('document_id', id);
+                const { error: linesErr } = await supabase.from('document_lines').insert(
+                    lines.map(l => ({ document_id: id, description: l.description, quantity: l.quantity, unit_price: l.unit_price }))
+                );
+                if (linesErr) throw linesErr;
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: ['document'] });
+        },
+    });
+
     return {
         documents: documentsQuery.data ?? [],
         isLoading: documentsQuery.isLoading,
@@ -133,6 +164,7 @@ export function useDocuments() {
         generatePdf,
         sendEmail,
         updateStatus,
+        updateDocument,
         getEmailLogs: (documentId: string) => useQuery({
             queryKey: ['email-logs', documentId],
             queryFn: async () => {

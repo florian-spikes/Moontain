@@ -16,9 +16,9 @@ Font.register({
 // If user provides Horizon.otf, we can register it here
 
 Font.register({
-    family: 'Horizon',
+    family: 'PPMori',
     fonts: [
-        { src: '/fonts/SpaceMono-Bold.ttf', fontWeight: 'bold' },
+        { src: '/fonts/PPMori-Regular.otf' },
     ],
 });
 
@@ -77,7 +77,7 @@ const s = StyleSheet.create({
         marginBottom: 4 * MM,
     },
     title: {
-        fontFamily: 'Horizon',
+        fontFamily: 'PPMori',
         fontWeight: 'bold',
         fontSize: 36,
         letterSpacing: 1,
@@ -119,7 +119,7 @@ const s = StyleSheet.create({
         width: '48%',
     },
     identityTitle: {
-        fontFamily: 'Horizon',
+        fontFamily: 'PPMori',
         fontWeight: 'bold',
         fontSize: 9,
         marginBottom: 2 * MM,
@@ -141,7 +141,7 @@ const s = StyleSheet.create({
         paddingVertical: 2.5 * MM,
     },
     tableHeaderCell: {
-        fontFamily: 'Horizon',
+        fontFamily: 'PPMori',
         fontWeight: 'bold',
         fontSize: 8,
         color: WHITE,

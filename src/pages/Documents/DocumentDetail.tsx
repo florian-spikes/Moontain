@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDocuments } from '../../hooks/useDocuments';
 import { useGeneratePdf } from '../../hooks/useGeneratePdf';
@@ -6,7 +7,8 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
     ArrowLeft, FileText, Download, Send, CheckCircle,
-    AlertCircle, Printer, Mail, Loader2, Receipt
+    AlertCircle, Printer, Mail, Loader2, MoreVertical,
+    Edit2, RefreshCw, Plus, Trash2, Save, X
 } from 'lucide-react';
 import type { DocumentStatus } from '../../types';
 
@@ -20,10 +22,13 @@ const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: s
 
 export function DocumentDetail() {
     const { id } = useParams<{ id: string }>();
-    const { getDocument, sendEmail, updateStatus, getEmailLogs } = useDocuments();
+    const { getDocument, sendEmail, updateStatus, updateDocument, getEmailLogs } = useDocuments();
     const generatePdf = useGeneratePdf();
     const { data: doc, isLoading, error } = getDocument(id!);
     const { data: emailLogs = [] } = getEmailLogs(id!);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editLines, setEditLines] = useState<{ description: string; quantity: number; unit_price: number }[]>([]);
 
     if (isLoading) return (
         <div className="dd-loading animate-fade-in">
@@ -39,6 +44,17 @@ export function DocumentDetail() {
     const isGeneratingPdf = generatePdf.isPending;
     const isSendingEmail = sendEmail.isPending;
 
+    const startEditing = () => {
+        setEditLines((doc.lines || []).map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price })));
+        setIsEditing(true);
+    };
+    const cancelEditing = () => setIsEditing(false);
+    const saveEditing = async () => {
+        await updateDocument.mutateAsync({ id: doc.id, lines: editLines });
+        setIsEditing(false);
+    };
+    const editTotal = editLines.reduce((s, l) => s + l.quantity * l.unit_price, 0);
+
     return (
         <div className="dd animate-fade-in">
             {/* Header */}
@@ -48,7 +64,7 @@ export function DocumentDetail() {
                     <div>
                         <div className="dd-header-title">
                             <div className="dd-doc-icon" style={{ background: conf.bg, color: conf.color }}>
-                                {doc.type === 'quote' ? <FileText size={20} /> : <Receipt size={20} />}
+                                {doc.type === 'quote' ? <FileText size={20} /> : <FileText size={20} />}
                             </div>
                             <div>
                                 <h1 className="dd-title">{doc.number || 'Brouillon'}</h1>
@@ -81,6 +97,11 @@ export function DocumentDetail() {
                             Envoyer
                         </button>
                     )}
+                    {doc.status === 'draft' && !isEditing && (
+                        <button onClick={startEditing} className="dd-btn dd-btn-secondary">
+                            <Edit2 size={16} /> Modifier
+                        </button>
+                    )}
                     {doc.status === 'sent' && (
                         <button
                             onClick={() => { if (confirm('Marquer ce document comme payé ?')) updateStatus.mutate({ id: doc.id, status: 'paid' }); }}
@@ -89,6 +110,19 @@ export function DocumentDetail() {
                             <CheckCircle size={16} /> Marquer Payé
                         </button>
                     )}
+                    {/* 3-dots menu */}
+                    <div className="dd-menu-wrap">
+                        <button className="dd-btn dd-btn-icon" onClick={() => setMenuOpen(!menuOpen)}>
+                            <MoreVertical size={18} />
+                        </button>
+                        {menuOpen && (
+                            <div className="dd-dropdown" onClick={() => setMenuOpen(false)}>
+                                <button className="dd-dropdown-item" onClick={() => generatePdf.mutate(doc)}>
+                                    <RefreshCw size={14} /> Régénérer le PDF
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -112,36 +146,90 @@ export function DocumentDetail() {
                     </div>
 
                     {/* Lines table */}
-                    <div className="dd-table-wrap">
-                        <table className="dd-table">
-                            <thead>
-                                <tr>
-                                    <th className="dd-th">Description</th>
-                                    <th className="dd-th dd-th-right">Qté</th>
-                                    <th className="dd-th dd-th-right">Prix Unit.</th>
-                                    <th className="dd-th dd-th-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {doc.lines?.map((line) => (
-                                    <tr key={line.id} className="dd-tr">
-                                        <td className="dd-td">{line.description}</td>
-                                        <td className="dd-td dd-td-right">{line.quantity}</td>
-                                        <td className="dd-td dd-td-right">{line.unit_price}€</td>
-                                        <td className="dd-td dd-td-right dd-td-bold">{(line.quantity * line.unit_price).toFixed(2)}€</td>
+                    {isEditing ? (
+                        <div className="dd-edit-section">
+                            <div className="dd-edit-header">
+                                <span>Modifier les prestations</span>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button className="dd-btn dd-btn-secondary dd-btn-sm" onClick={cancelEditing}><X size={14} /> Annuler</button>
+                                    <button className="dd-btn dd-btn-primary dd-btn-sm" onClick={saveEditing} disabled={updateDocument.isPending}>
+                                        {updateDocument.isPending ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />} Sauvegarder
+                                    </button>
+                                </div>
+                            </div>
+                            <table className="dd-table">
+                                <thead>
+                                    <tr>
+                                        <th className="dd-th">Description</th>
+                                        <th className="dd-th dd-th-right" style={{ width: 80 }}>Qté</th>
+                                        <th className="dd-th dd-th-right" style={{ width: 100 }}>Prix Unit.</th>
+                                        <th className="dd-th dd-th-right" style={{ width: 100 }}>Total</th>
+                                        <th className="dd-th" style={{ width: 40 }}></th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Total */}
-                    <div className="dd-total-bar">
-                        <span>Total HT</span>
-                        <span className="dd-total-val">
-                            {doc.total_amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                        </span>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {editLines.map((line, i) => (
+                                        <tr key={i} className="dd-tr">
+                                            <td className="dd-td">
+                                                <input className="dd-edit-input" value={line.description}
+                                                    onChange={e => { const n = [...editLines]; n[i] = { ...n[i], description: e.target.value }; setEditLines(n); }} />
+                                            </td>
+                                            <td className="dd-td dd-td-right">
+                                                <input className="dd-edit-input dd-edit-num" type="number" min={1} value={line.quantity}
+                                                    onChange={e => { const n = [...editLines]; n[i] = { ...n[i], quantity: Number(e.target.value) }; setEditLines(n); }} />
+                                            </td>
+                                            <td className="dd-td dd-td-right">
+                                                <input className="dd-edit-input dd-edit-num" type="number" min={0} step={0.01} value={line.unit_price}
+                                                    onChange={e => { const n = [...editLines]; n[i] = { ...n[i], unit_price: Number(e.target.value) }; setEditLines(n); }} />
+                                            </td>
+                                            <td className="dd-td dd-td-right dd-td-bold">{(line.quantity * line.unit_price).toFixed(2)}€</td>
+                                            <td className="dd-td">
+                                                <button className="dd-btn-icon-sm" onClick={() => setEditLines(editLines.filter((_, j) => j !== i))}>
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <button className="dd-add-line" onClick={() => setEditLines([...editLines, { description: '', quantity: 1, unit_price: 0 }])}>
+                                <Plus size={14} /> Ajouter une ligne
+                            </button>
+                            <div className="dd-total-bar">
+                                <span>Total HT</span>
+                                <span className="dd-total-val">{editTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="dd-table-wrap">
+                                <table className="dd-table">
+                                    <thead>
+                                        <tr>
+                                            <th className="dd-th">Description</th>
+                                            <th className="dd-th dd-th-right">Qté</th>
+                                            <th className="dd-th dd-th-right">Prix Unit.</th>
+                                            <th className="dd-th dd-th-right">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {doc.lines?.map((line) => (
+                                            <tr key={line.id} className="dd-tr">
+                                                <td className="dd-td">{line.description}</td>
+                                                <td className="dd-td dd-td-right">{line.quantity}</td>
+                                                <td className="dd-td dd-td-right">{line.unit_price}€</td>
+                                                <td className="dd-td dd-td-right dd-td-bold">{(line.quantity * line.unit_price).toFixed(2)}€</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="dd-total-bar">
+                                <span>Total HT</span>
+                                <span className="dd-total-val">{doc.total_amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
+                            </div>
+                        </>
+                    )}
                     <div className="dd-tva">TVA non applicable, art. 293 B du CGI</div>
                 </div>
 
@@ -304,4 +392,58 @@ const ddStyles = `
     @media (max-width: 800px) {
         .dd-layout { grid-template-columns: 1fr; }
     }
+
+    /* 3-dots menu */
+    .dd-menu-wrap { position: relative; }
+    .dd-btn-icon {
+        width: 36px; height: 36px; border-radius: var(--radius-lg);
+        background: var(--bg-card); border: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--text-secondary); cursor: pointer; transition: all var(--transition-smooth);
+    }
+    .dd-btn-icon:hover { border-color: var(--primary); color: var(--primary); }
+    .dd-dropdown {
+        position: absolute; right: 0; top: calc(100% + 4px); z-index: 50;
+        background: var(--bg-card); border: 1px solid var(--border);
+        border-radius: var(--radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        min-width: 200px; overflow: hidden;
+    }
+    .dd-dropdown-item {
+        display: flex; align-items: center; gap: 0.5rem; width: 100%;
+        padding: 0.625rem 1rem; font-size: 0.8125rem; cursor: pointer;
+        background: none; border: none; color: var(--text-primary);
+        transition: background var(--transition-fast);
+    }
+    .dd-dropdown-item:hover { background: var(--bg-surface-hover); }
+
+    /* Edit mode */
+    .dd-edit-section { margin-top: 0.5rem; }
+    .dd-edit-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 0.75rem; font-weight: 600; font-size: 0.875rem;
+    }
+    .dd-btn-sm { padding: 0.35rem 0.75rem; font-size: 0.75rem; border-radius: var(--radius-md); }
+    .dd-edit-input {
+        width: 100%; padding: 0.4rem 0.5rem; border: 1px solid var(--border);
+        border-radius: var(--radius-md); background: var(--bg-main);
+        font-size: 0.8125rem; color: var(--text-primary);
+        transition: border-color var(--transition-fast);
+    }
+    .dd-edit-input:focus { outline: none; border-color: var(--primary); }
+    .dd-edit-num { width: 80px; text-align: right; }
+    .dd-btn-icon-sm {
+        width: 28px; height: 28px; border-radius: var(--radius-md);
+        display: flex; align-items: center; justify-content: center;
+        background: none; border: none; color: var(--text-muted); cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+    .dd-btn-icon-sm:hover { color: #ef4444; background: rgba(239,68,68,0.08); }
+    .dd-add-line {
+        display: flex; align-items: center; gap: 0.375rem;
+        padding: 0.5rem; margin-top: 0.5rem; width: 100%;
+        background: none; border: 1px dashed var(--border); border-radius: var(--radius-md);
+        color: var(--text-secondary); font-size: 0.8125rem; cursor: pointer;
+        transition: all var(--transition-fast); justify-content: center;
+    }
+    .dd-add-line:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
 `;
