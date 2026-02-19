@@ -39,6 +39,9 @@ export interface CatalogItem {
     description: string | null;
     unit_price: number;
     unit: string | null;
+    billing_mode: 'unit' | 'subscription';
+    billing_frequency: 'monthly' | 'yearly' | null;
+    quantity: number | null;
 }
 
 export type NewCatalogItem = Omit<CatalogItem, 'id' | 'created_at'>;

@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Trash2, Package } from 'lucide-react';
+import { Plus, Search, Trash2, Package, Repeat } from 'lucide-react';
 import { useCatalog } from '../../hooks/useCatalog';
 
 export function CatalogList() {
@@ -70,6 +70,13 @@ export function CatalogList() {
                                 <div className="ct-card-info">
                                     <h3 className="ct-card-name">{item.name}</h3>
                                     {item.description && <p className="ct-card-desc">{item.description}</p>}
+                                    <span className={`ct-card-mode ${item.billing_mode === 'subscription' ? 'ct-mode-sub' : 'ct-mode-unit'}`}>
+                                        {item.billing_mode === 'subscription' ? (
+                                            <><Repeat size={11} /> Abonnement · {item.billing_frequency === 'yearly' ? 'Annuel' : 'Mensuel'}</>
+                                        ) : (
+                                            <>Unité{item.quantity && item.quantity > 1 ? ` · Qté ${item.quantity}` : ''}</>
+                                        )}
+                                    </span>
                                 </div>
                             </div>
                             <div className="ct-card-bottom">
@@ -167,6 +174,14 @@ const ctStyles = `
         font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;
         display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
+    .ct-card-mode {
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        font-size: 0.625rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.04em; padding: 0.2rem 0.5rem;
+        border-radius: 999px; margin-top: 0.375rem; width: fit-content;
+    }
+    .ct-mode-sub { background: rgba(59,130,246,0.1); color: #3b82f6; }
+    .ct-mode-unit { background: var(--bg-surface-hover); color: var(--text-muted); }
     .ct-card-bottom {
         display: flex; justify-content: space-between; align-items: center;
         padding-top: 0.875rem; border-top: 1px solid var(--border);
