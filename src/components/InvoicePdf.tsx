@@ -4,10 +4,11 @@ import {
     StyleSheet, Font,
 } from '@react-pdf/renderer';
 
-// Register fonts — Space Mono from local files, fallback to system for Horizon
+// Register fonts — SpaceMono bold is the only file available; register it for both weights to avoid resolution errors
 Font.register({
     family: 'SpaceMono',
     fonts: [
+        { src: '/fonts/SpaceMono-Bold.ttf', fontWeight: 'normal' },
         { src: '/fonts/SpaceMono-Bold.ttf', fontWeight: 'bold' },
     ],
 });
@@ -255,7 +256,6 @@ const s = StyleSheet.create({
     signature: {
         fontSize: 7,
         color: GREY,
-        fontStyle: 'italic',
         fontFamily: 'SpaceMono',
     },
     logo: {
