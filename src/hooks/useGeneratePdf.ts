@@ -50,7 +50,7 @@ export function useGeneratePdf() {
             const element = React.createElement(InvoicePdf, { data, logoUrl });
             const blob = await pdf(element as any).toBlob();
 
-            // Upload to Supabase Storage
+            // Upload to Supabase Storage (upsert)
             const fileName = `${doc.type}_${number}.pdf`;
             const { error: uploadErr } = await supabase.storage
                 .from('documents')
@@ -61,12 +61,12 @@ export function useGeneratePdf() {
 
             if (uploadErr) throw uploadErr;
 
-            // Get public URL
+            // Get public URL + append timestamp to bust browser cache
             const { data: urlData } = supabase.storage
                 .from('documents')
                 .getPublicUrl(fileName);
 
-            const publicUrl = urlData.publicUrl;
+            const publicUrl = `${urlData.publicUrl}?v=${Date.now()}`;
 
             // Update document record
             await supabase
@@ -76,9 +76,17 @@ export function useGeneratePdf() {
 
             return { url: publicUrl };
         },
-        onSuccess: () => {
+        onSuccess: (result) => {
             queryClient.invalidateQueries({ queryKey: ['document'] });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            // Open the freshly generated PDF in a new tab
+            if (result?.url) {
+                window.open(result.url, '_blank');
+            }
+        },
+        onError: (err) => {
+            console.error('[useGeneratePdf] PDF generation failed:', err);
+            alert('Erreur lors de la génération du PDF : ' + (err as Error).message);
         },
     });
 }
