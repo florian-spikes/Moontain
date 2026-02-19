@@ -176,7 +176,7 @@ const s = StyleSheet.create({
         marginBottom: 1.5 * MM,
     },
     totalLabel: {
-        fontFamily: 'Horizon',
+        fontFamily: 'PPMori',
         fontWeight: 'bold',
         fontSize: 9,
         width: '60%',
@@ -202,13 +202,13 @@ const s = StyleSheet.create({
         marginTop: 2 * MM,
     },
     totalBandLabel: {
-        fontFamily: 'Horizon',
+        fontFamily: 'PPMori',
         fontWeight: 'bold',
         fontSize: 14,
         color: WHITE,
     },
     totalBandValue: {
-        fontFamily: 'Horizon',
+        fontFamily: 'PPMori',
         fontWeight: 'bold',
         fontSize: 14,
         color: WHITE,
