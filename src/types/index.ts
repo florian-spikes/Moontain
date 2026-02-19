@@ -42,6 +42,9 @@ export interface CatalogItem {
     billing_mode: 'unit' | 'subscription';
     billing_frequency: 'monthly' | 'yearly' | null;
     quantity: number | null;
+    subscription_type: 'ongoing' | 'fixed' | null;
+    start_date: string | null;
+    end_date: string | null;
 }
 
 export type NewCatalogItem = Omit<CatalogItem, 'id' | 'created_at'>;

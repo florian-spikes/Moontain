@@ -1,8 +1,9 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Trash2, Package, Repeat } from 'lucide-react';
+import { Plus, Search, Trash2, Package, Repeat, Calendar } from 'lucide-react';
 import { useCatalog } from '../../hooks/useCatalog';
+import { format, parseISO } from 'date-fns';
 
 export function CatalogList() {
     const { catalogItems, isLoading, error, deleteCatalogItem } = useCatalog();
@@ -72,7 +73,13 @@ export function CatalogList() {
                                     {item.description && <p className="ct-card-desc">{item.description}</p>}
                                     <span className={`ct-card-mode ${item.billing_mode === 'subscription' ? 'ct-mode-sub' : 'ct-mode-unit'}`}>
                                         {item.billing_mode === 'subscription' ? (
-                                            <><Repeat size={11} /> Abonnement · {item.billing_frequency === 'yearly' ? 'Annuel' : 'Mensuel'}</>
+                                            <>
+                                                {item.subscription_type === 'fixed' && item.start_date && item.end_date ? (
+                                                    <><Calendar size={11} /> Du {format(parseISO(item.start_date), 'dd/MM/yy')} au {format(parseISO(item.end_date), 'dd/MM/yy')}</>
+                                                ) : (
+                                                    <><Repeat size={11} /> {item.billing_frequency === 'yearly' ? 'Annuel' : 'Mensuel'} (Tacite)</>
+                                                )}
+                                            </>
                                         ) : (
                                             <>Unité{item.quantity && item.quantity > 1 ? ` · Qté ${item.quantity}` : ''}</>
                                         )}
