@@ -4,15 +4,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCatalog } from '../../hooks/useCatalog';
-import { ArrowLeft, Save, Package, DollarSign, Ruler, FileText, Loader2, Repeat, Hash } from 'lucide-react';
+import { ArrowLeft, Save, Package, DollarSign, Ruler, FileText, Loader2, Repeat, Hash, ChevronDown } from 'lucide-react';
 
 const itemSchema = z.object({
     name: z.string().min(1, 'Le nom est requis'),
     description: z.string().optional(),
     unit_price: z.number().min(0, 'Le prix doit être positif'),
-    unit: z.string().optional(),
     billing_mode: z.enum(['unit', 'subscription']),
     quantity: z.number().min(1).optional(),
+    unit: z.string().optional(),
     billing_frequency: z.enum(['monthly', 'yearly']).optional(),
 });
 
@@ -27,6 +27,7 @@ export function NewCatalogItem() {
         defaultValues: {
             billing_mode: 'unit',
             quantity: 1,
+            unit: 'pièce',
             billing_frequency: 'monthly',
         },
     });
@@ -39,7 +40,10 @@ export function NewCatalogItem() {
                 name: data.name,
                 description: data.description || null,
                 unit_price: data.unit_price,
-                unit: data.unit || 'pièce',
+                // If subscription, force unit to null or empty? Current DB allows null.
+                // But for display consistency, we might just ignore it or set a default.
+                // The prompt implies "Forfait" has unit, "Abonnement" has frequency.
+                unit: data.billing_mode === 'unit' ? (data.unit ?? null) : null,
                 billing_mode: data.billing_mode,
                 quantity: data.billing_mode === 'unit' ? (data.quantity ?? 1) : null,
                 billing_frequency: data.billing_mode === 'subscription' ? (data.billing_frequency ?? 'monthly') : null,
@@ -89,65 +93,24 @@ export function NewCatalogItem() {
                         />
                     </div>
 
-                    {/* Billing mode toggle */}
-                    <div className="frm-group">
-                        <label className="frm-label">
-                            <Repeat size={14} />
-                            Mode de facturation
-                        </label>
-                        <div className="frm-toggle-group">
-                            <label className={`frm-toggle-btn ${billingMode === 'unit' ? 'frm-toggle-active' : ''}`}>
-                                <input type="radio" value="unit" {...register('billing_mode')} className="sr-only" />
-                                <Hash size={16} />
-                                À l'unité
-                            </label>
-                            <label className={`frm-toggle-btn ${billingMode === 'subscription' ? 'frm-toggle-active' : ''}`}>
-                                <input type="radio" value="subscription" {...register('billing_mode')} className="sr-only" />
-                                <Repeat size={16} />
-                                Abonnement
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Conditional: quantity (unit mode) */}
-                    {billingMode === 'unit' && (
-                        <div className="frm-group animate-fade-in">
-                            <label className="frm-label">
-                                <Hash size={14} />
-                                Nombre
-                            </label>
-                            <input
-                                type="number"
-                                min={1}
-                                {...register('quantity', { valueAsNumber: true })}
-                                className="frm-input"
-                                placeholder="1"
-                            />
-                        </div>
-                    )}
-
-                    {/* Conditional: frequency (subscription mode) */}
-                    {billingMode === 'subscription' && (
-                        <div className="frm-group animate-fade-in">
+                    <div className="frm-row-split">
+                        {/* Billing Mode Select */}
+                        <div className="frm-group" style={{ flex: 1 }}>
                             <label className="frm-label">
                                 <Repeat size={14} />
-                                Fréquence
+                                Type de prestation
                             </label>
-                            <div className="frm-toggle-group">
-                                <label className={`frm-toggle-btn ${watch('billing_frequency') === 'monthly' ? 'frm-toggle-active' : ''}`}>
-                                    <input type="radio" value="monthly" {...register('billing_frequency')} className="sr-only" />
-                                    Mensuel
-                                </label>
-                                <label className={`frm-toggle-btn ${watch('billing_frequency') === 'yearly' ? 'frm-toggle-active' : ''}`}>
-                                    <input type="radio" value="yearly" {...register('billing_frequency')} className="sr-only" />
-                                    Annuel
-                                </label>
+                            <div className="frm-select-wrapper">
+                                <select {...register('billing_mode')} className="frm-input frm-select">
+                                    <option value="unit">Forfait (à l'unité)</option>
+                                    <option value="subscription">Abonnement</option>
+                                </select>
+                                <ChevronDown size={16} className="frm-select-icon" />
                             </div>
                         </div>
-                    )}
 
-                    <div className="frm-grid-2">
-                        <div className="frm-group">
+                        {/* Price */}
+                        <div className="frm-group" style={{ flex: 1 }}>
                             <label className="frm-label">
                                 <DollarSign size={14} />
                                 Prix Unitaire (€) <span className="frm-req">*</span>
@@ -160,20 +123,55 @@ export function NewCatalogItem() {
                             />
                             {errors.unit_price && <p className="frm-error">{errors.unit_price.message}</p>}
                         </div>
-
-                        <div className="frm-group">
-                            <label className="frm-label">
-                                <Ruler size={14} />
-                                Unité
-                            </label>
-                            <input
-                                {...register('unit')}
-                                className="frm-input"
-                                placeholder="Ex: pièce, heure, jour, mois"
-                                defaultValue="pièce"
-                            />
-                        </div>
                     </div>
+
+                    {/* Conditional Fields based on Mode */}
+                    {billingMode === 'unit' ? (
+                        <div className="frm-row-split animate-fade-in">
+                            <div className="frm-group" style={{ flex: 1 }}>
+                                <label className="frm-label">
+                                    <Ruler size={14} />
+                                    Unité
+                                </label>
+                                <div className="frm-select-wrapper">
+                                    <select {...register('unit')} className="frm-input frm-select">
+                                        <option value="pièce">Pièce</option>
+                                        <option value="heure">Heure</option>
+                                        <option value="jour">Jour</option>
+                                        <option value="unité">Unité</option>
+                                        <option value="forfait">Forfait</option>
+                                    </select>
+                                    <ChevronDown size={16} className="frm-select-icon" />
+                                </div>
+                            </div>
+                            <div className="frm-group" style={{ flex: 1 }}>
+                                <label className="frm-label">
+                                    <Hash size={14} />
+                                    Quantité par défaut
+                                </label>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    {...register('quantity', { valueAsNumber: true })}
+                                    className="frm-input"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="frm-group animate-fade-in">
+                            <label className="frm-label">
+                                <Repeat size={14} />
+                                Fréquence de facturation
+                            </label>
+                            <div className="frm-select-wrapper">
+                                <select {...register('billing_frequency')} className="frm-input frm-select">
+                                    <option value="monthly">Mensuel</option>
+                                    <option value="yearly">Annuel</option>
+                                </select>
+                                <ChevronDown size={16} className="frm-select-icon" />
+                            </div>
+                        </div>
+                    )}
 
                     <div className="frm-actions">
                         <Link to="/catalog" className="frm-btn-cancel">Annuler</Link>
@@ -210,8 +208,8 @@ const formStyles = `
         border-radius: var(--radius-xl); padding: 2rem;
     }
     .frm-form { display: flex; flex-direction: column; gap: 1.5rem; }
-    .frm-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-    .frm-group { display: flex; flex-direction: column; gap: 0.375rem; }
+    .frm-row-split { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+    .frm-group { display: flex; flex-direction: column; gap: 0.375rem; position: relative; }
     .frm-label {
         display: flex; align-items: center; gap: 0.375rem;
         font-size: 0.8125rem; font-weight: 600; color: var(--text-secondary);
@@ -223,6 +221,7 @@ const formStyles = `
         border-radius: var(--radius-lg) !important; color: var(--text-primary) !important;
         font-size: 0.875rem !important;
         transition: border var(--transition-smooth), box-shadow var(--transition-smooth) !important;
+        appearance: none; -webkit-appearance: none;
     }
     .frm-input:focus {
         outline: none !important; border-color: var(--primary) !important;
@@ -231,27 +230,13 @@ const formStyles = `
     .frm-input::placeholder { color: var(--text-muted) !important; }
     .frm-input-error { border-color: var(--danger) !important; }
     .frm-textarea { resize: vertical; min-height: 80px; }
+    .frm-select { padding-right: 2.5rem !important; cursor: pointer; }
+    .frm-select-wrapper { position: relative; }
+    .frm-select-icon {
+        position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+        color: var(--text-muted); pointer-events: none;
+    }
     .frm-error { font-size: 0.75rem; color: var(--danger); }
-    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-
-    /* Toggle group (for billing mode & frequency) */
-    .frm-toggle-group {
-        display: flex; gap: 0.5rem;
-    }
-    .frm-toggle-btn {
-        flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-        padding: 0.75rem 1rem; border-radius: var(--radius-lg);
-        border: 1.5px solid var(--border); background: transparent;
-        color: var(--text-secondary); font-weight: 500; font-size: 0.875rem;
-        cursor: pointer; transition: all var(--transition-smooth);
-    }
-    .frm-toggle-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .frm-toggle-active {
-        border-color: var(--primary) !important;
-        background: var(--primary-light) !important;
-        color: var(--primary) !important;
-        font-weight: 600;
-    }
 
     .frm-actions {
         display: flex; justify-content: flex-end; gap: 0.75rem;

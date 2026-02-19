@@ -82,7 +82,12 @@ export function CatalogList() {
                             <div className="ct-card-bottom">
                                 <div className="ct-card-meta">
                                     <div className="ct-card-price">{item.unit_price}€</div>
-                                    <div className="ct-card-unit">/ {item.unit || 'pièce'}</div>
+                                    <div className="ct-card-unit">
+                                        {item.billing_mode === 'subscription'
+                                            ? (item.billing_frequency === 'yearly' ? '/ an' : '/ mois')
+                                            : `/ ${item.unit || 'pièce'}`
+                                        }
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => handleDelete(item.id)}
