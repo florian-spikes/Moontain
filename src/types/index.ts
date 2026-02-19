@@ -90,4 +90,14 @@ export interface NewDocument {
     }[];
 }
 
+export interface EmailLog {
+    id: string;
+    created_at: string;
+    document_id: string;
+    type: string;
+    recipient: string;
+    status: string | null;
+    error: string | null;
+}
+
 

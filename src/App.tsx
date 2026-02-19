@@ -10,6 +10,7 @@ import Register from './pages/Auth/Register';
 
 import { ClientsList } from './pages/Clients/ClientsList';
 import { NewClient } from './pages/Clients/NewClient';
+import { ClientDetail } from './pages/Clients/ClientDetail';
 import { ServicesList } from './pages/Services/ServicesList';
 import { CatalogList } from './pages/Catalog/CatalogList';
 import { NewCatalogItem } from './pages/Catalog/NewCatalogItem';
@@ -33,6 +34,7 @@ export default function App() {
 
             <Route path="clients" element={<ClientsList />} />
             <Route path="clients/new" element={<NewClient />} />
+            <Route path="clients/:id" element={<ClientDetail />} />
 
             <Route path="catalog" element={<CatalogList />} />
             <Route path="catalog/new" element={<NewCatalogItem />} />

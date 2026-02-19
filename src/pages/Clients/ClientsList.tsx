@@ -81,19 +81,21 @@ export function ClientsList() {
                             className="cls-card animate-slide-up"
                             style={{ animationDelay: `${i * 0.04}s` }}
                         >
-                            <div className="cls-card-top">
-                                <div className="cls-card-emoji">{client.emoji || '🏢'}</div>
-                                <div className="cls-card-info">
-                                    <h3 className="cls-card-name">{client.name}</h3>
-                                    <p className="cls-card-email">{client.email || 'Pas d\'email'}</p>
+                            <Link to={`/clients/${client.id}`} className="cls-card-link">
+                                <div className="cls-card-top">
+                                    <div className="cls-card-emoji">{client.emoji || '🏢'}</div>
+                                    <div className="cls-card-info">
+                                        <h3 className="cls-card-name">{client.name}</h3>
+                                        <p className="cls-card-email">{client.email || 'Pas d\'email'}</p>
+                                    </div>
                                 </div>
-                            </div>
-                            {client.notes && (
-                                <p className="cls-card-notes">{client.notes}</p>
-                            )}
-                            {client.address && (
-                                <p className="cls-card-address">{client.address}</p>
-                            )}
+                                {client.notes && (
+                                    <p className="cls-card-notes">{client.notes}</p>
+                                )}
+                                {client.address && (
+                                    <p className="cls-card-address">{client.address}</p>
+                                )}
+                            </Link>
                             <div className="cls-card-actions">
                                 <Link to={`/clients/${client.id}`} className="cls-card-btn cls-card-btn-edit">
                                     <Edit2 size={14} /> Modifier
@@ -243,6 +245,11 @@ const clStyles = `
     }
 
     /* Card */
+    .cls-card-link {
+        text-decoration: none; color: inherit;
+        display: flex; flex-direction: column; flex: 1;
+        cursor: pointer;
+    }
     .cls-card {
         background: var(--bg-card);
         border: 1px solid var(--border);

@@ -1,7 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import type { Document, NewDocument } from '../types';
+import type { Document, NewDocument, EmailLog } from '../types';
 
 export function useDocuments() {
     const queryClient = useQueryClient();
@@ -102,6 +102,7 @@ export function useDocuments() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['document'] });
+            queryClient.invalidateQueries({ queryKey: ['email-logs'] });
         }
     });
 
@@ -131,6 +132,19 @@ export function useDocuments() {
         createDocument,
         generatePdf,
         sendEmail,
-        updateStatus
+        updateStatus,
+        getEmailLogs: (documentId: string) => useQuery({
+            queryKey: ['email-logs', documentId],
+            queryFn: async () => {
+                const { data, error } = await supabase
+                    .from('email_logs')
+                    .select('*')
+                    .eq('document_id', documentId)
+                    .order('created_at', { ascending: false });
+                if (error) throw error;
+                return data as EmailLog[];
+            },
+            enabled: !!documentId,
+        }),
     };
 }

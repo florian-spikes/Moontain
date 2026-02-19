@@ -19,8 +19,9 @@ const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: s
 
 export function DocumentDetail() {
     const { id } = useParams<{ id: string }>();
-    const { getDocument, generatePdf, sendEmail, updateStatus } = useDocuments();
+    const { getDocument, generatePdf, sendEmail, updateStatus, getEmailLogs } = useDocuments();
     const { data: doc, isLoading, error } = getDocument(id!);
+    const { data: emailLogs = [] } = getEmailLogs(id!);
 
     if (isLoading) return (
         <div className="dd-loading animate-fade-in">
@@ -146,8 +147,30 @@ export function DocumentDetail() {
                 <div className="dd-sidebar">
                     <div className="dd-sidebar-card">
                         <div className="dd-sidebar-title"><Mail size={16} /> Historique des envois</div>
-                        <p className="dd-sidebar-empty">Aucun email envoyé pour le moment.</p>
-                        {doc.status === 'sent' && (
+                        {emailLogs.length === 0 ? (
+                            <p className="dd-sidebar-empty">Aucun email envoyé pour le moment.</p>
+                        ) : (
+                            <div className="dd-email-logs">
+                                {emailLogs.map(log => (
+                                    <div key={log.id} className="dd-email-log">
+                                        <div className="dd-email-log-top">
+                                            <span className={`dd-log-status ${log.status === 'sent' ? 'dd-log-ok' : 'dd-log-err'}`}>
+                                                {log.status === 'sent' ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
+                                            </span>
+                                            <span className="dd-log-type">
+                                                {log.type === 'reminder' ? 'Relance' : log.type === 'resend' ? 'Renvoi' : 'Envoi'}
+                                            </span>
+                                            <span className="dd-log-date">
+                                                {format(parseISO(log.created_at), 'dd/MM HH:mm')}
+                                            </span>
+                                        </div>
+                                        <div className="dd-log-recipient">{log.recipient}</div>
+                                        {log.error && <div className="dd-log-error">{log.error}</div>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {(doc.status === 'sent' || doc.status === 'overdue') && (
                             <button
                                 onClick={() => { if (confirm("Renvoyer l'email ?")) sendEmail.mutate({ id: doc.id, type: 'resend' }); }}
                                 className="dd-sidebar-link"
@@ -249,6 +272,21 @@ const ddStyles = `
         color: var(--primary); cursor: pointer; background: none; border: none; padding: 0;
     }
     .dd-sidebar-link:hover { text-decoration: underline; }
+
+    /* Email logs */
+    .dd-email-logs { display: flex; flex-direction: column; gap: 0.5rem; }
+    .dd-email-log {
+        background: var(--bg-surface-hover); border-radius: var(--radius-lg);
+        padding: 0.625rem 0.75rem; font-size: 0.75rem;
+    }
+    .dd-email-log-top { display: flex; align-items: center; gap: 0.5rem; }
+    .dd-log-status { display: flex; align-items: center; }
+    .dd-log-ok { color: #22c55e; }
+    .dd-log-err { color: #ef4444; }
+    .dd-log-type { font-weight: 600; }
+    .dd-log-date { color: var(--text-muted); margin-left: auto; font-size: 0.6875rem; }
+    .dd-log-recipient { color: var(--text-muted); font-size: 0.6875rem; margin-top: 0.125rem; }
+    .dd-log-error { color: #ef4444; font-size: 0.625rem; margin-top: 0.25rem; background: rgba(239,68,68,0.06); padding: 0.25rem 0.375rem; border-radius: 4px; }
 
     .dd-loading {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
