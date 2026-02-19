@@ -1,4 +1,10 @@
 
+import { Buffer } from 'buffer'
+// Polyfill Buffer for browser — required by @react-pdf/renderer
+if (typeof window !== 'undefined') {
+  (window as any).Buffer = Buffer;
+}
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
