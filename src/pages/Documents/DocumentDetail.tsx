@@ -7,7 +7,7 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
     ArrowLeft, FileText, Download, Send, CheckCircle,
-    AlertCircle, Printer, Mail, Loader2, MoreVertical,
+    AlertCircle, Printer, Mail, Loader2,
     Edit2, RefreshCw, Plus, Trash2, Save, X
 } from 'lucide-react';
 import type { DocumentStatus } from '../../types';
@@ -26,7 +26,6 @@ export function DocumentDetail() {
     const generatePdf = useGeneratePdf();
     const { data: doc, isLoading, error } = getDocument(id!);
     const { data: emailLogs = [] } = getEmailLogs(id!);
-    const [menuOpen, setMenuOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editLines, setEditLines] = useState<{ description: string; quantity: number; unit_price: number }[]>([]);
 
@@ -76,17 +75,33 @@ export function DocumentDetail() {
                     </div>
                 </div>
                 <div className="dd-actions">
-                    {!doc.public_url && (
+                    {/* 1. Modifier */}
+                    {doc.status === 'draft' && !isEditing && (
+                        <button onClick={startEditing} className="dd-btn dd-btn-secondary">
+                            <Edit2 size={16} /> Modifier
+                        </button>
+                    )}
+
+                    {/* 2. Télécharger / Générer */}
+                    {!doc.public_url ? (
                         <button onClick={() => generatePdf.mutate(doc)} disabled={isGeneratingPdf} className="dd-btn dd-btn-secondary">
                             {isGeneratingPdf ? <Loader2 className="animate-spin" size={16} /> : <Printer size={16} />}
                             Générer PDF
                         </button>
-                    )}
-                    {doc.public_url && (
+                    ) : (
                         <a href={doc.public_url} target="_blank" rel="noopener noreferrer" className="dd-btn dd-btn-secondary">
                             <Download size={16} /> Télécharger
                         </a>
                     )}
+
+                    {/* 3. Régénérer (Cycle icon) */}
+                    {doc.public_url && (
+                        <button onClick={() => generatePdf.mutate(doc)} disabled={isGeneratingPdf} className="dd-btn dd-btn-secondary" title="Régénérer le PDF">
+                            <RefreshCw size={16} className={isGeneratingPdf ? 'animate-spin' : ''} />
+                        </button>
+                    )}
+
+                    {/* 4. Envoyer */}
                     {doc.public_url && doc.status === 'draft' && (
                         <button
                             onClick={() => { if (confirm('Envoyer le document par email au client ?')) sendEmail.mutate({ id: doc.id, type: doc.type }); }}
@@ -97,11 +112,8 @@ export function DocumentDetail() {
                             Envoyer
                         </button>
                     )}
-                    {doc.status === 'draft' && !isEditing && (
-                        <button onClick={startEditing} className="dd-btn dd-btn-secondary">
-                            <Edit2 size={16} /> Modifier
-                        </button>
-                    )}
+
+                    {/* Status Actions */}
                     {doc.status === 'sent' && (
                         <button
                             onClick={() => { if (confirm('Marquer ce document comme payé ?')) updateStatus.mutate({ id: doc.id, status: 'paid' }); }}
@@ -110,19 +122,6 @@ export function DocumentDetail() {
                             <CheckCircle size={16} /> Marquer Payé
                         </button>
                     )}
-                    {/* 3-dots menu */}
-                    <div className="dd-menu-wrap">
-                        <button className="dd-btn dd-btn-icon" onClick={() => setMenuOpen(!menuOpen)}>
-                            <MoreVertical size={18} />
-                        </button>
-                        {menuOpen && (
-                            <div className="dd-dropdown" onClick={() => setMenuOpen(false)}>
-                                <button className="dd-dropdown-item" onClick={() => generatePdf.mutate(doc)}>
-                                    <RefreshCw size={14} /> Régénérer le PDF
-                                </button>
-                            </div>
-                        )}
-                    </div>
                 </div>
             </div>
 
