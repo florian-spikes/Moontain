@@ -21,7 +21,7 @@ serve(async (req) => {
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         );
 
-        const { document_id, type, log_id } = await req.json();
+        const { document_id, type, log_id, to, cc, bcc } = await req.json();
 
         if (!document_id || !type) {
             throw new Error('Missing document_id or type');
@@ -35,7 +35,7 @@ serve(async (req) => {
             .single();
 
         if (docError || !doc) throw new Error('Document not found');
-        if (!doc.client?.email) throw new Error('Client has no email');
+        if (!doc.client?.email && !to) throw new Error('Client has no email');
         if (!doc.public_url) throw new Error('Document PDF not generated');
 
         // 2. Prepare Email HTML
@@ -51,10 +51,14 @@ serve(async (req) => {
             case 'resend': subject = `Copie : ${doc.type === 'quote' ? 'Devis' : 'Facture'} ${docLabel}`; break;
         }
 
+        const recipients = to || [doc.client.email];
+
         // 3. Send Email
         const { data: emailData, error: emailError } = await resend.emails.send({
             from: 'Moontain <factures@app.moontain.studio>',
-            to: [doc.client.email],
+            to: recipients,
+            cc,
+            bcc,
             subject,
             html,
             attachments: [
@@ -77,19 +81,20 @@ serve(async (req) => {
         }
 
         // 4. Log Email (Update existing log)
+        const recipientLog = Array.isArray(recipients) ? recipients.join(', ') : recipients;
         if (log_id) {
             await supabaseClient
                 .from('email_logs')
                 .update({
                     status: 'sent',
-                    recipient: doc.client.email,
+                    recipient: recipientLog,
                     subject
                 })
                 .eq('id', log_id);
         } else {
             // Fallback: insert if no log_id provided
             await supabaseClient.from('email_logs').insert({
-                type, document_id, status: 'sent', recipient: doc.client.email, subject
+                type, document_id, status: 'sent', recipient: recipientLog, subject
             });
         }
 

@@ -93,15 +93,17 @@ export function useDocuments() {
     });
 
     const sendEmail = useMutation({
-        mutationFn: async ({ id, type, recipient, number }: { id: string, type: 'quote' | 'invoice' | 'reminder' | 'resend', recipient: string, number: string }) => {
+        mutationFn: async ({ id, type, to, cc, bcc, number }: { id: string, type: 'quote' | 'invoice' | 'reminder' | 'resend', to: string | string[], cc?: string[], bcc?: string[], number: string }) => {
             // 1. Insert "Sending..." log immediately
+            const recipientsStr = Array.isArray(to) ? to.join(', ') : to;
+
             const { data: log, error: logError } = await supabase
                 .from('email_logs')
                 .insert({
                     type,
                     document_id: id,
                     status: 'pending', // or 'sending' if your schema allows
-                    recipient,
+                    recipient: recipientsStr, // Primary recipient for log
                     subject: `${type === 'quote' ? 'Devis' : 'Facture'} ${number}`
                 })
                 .select()
@@ -111,7 +113,7 @@ export function useDocuments() {
 
             // 2. Call function with log_id
             const { data, error } = await supabase.functions.invoke('send-document-email', {
-                body: { document_id: id, type, log_id: log.id }
+                body: { document_id: id, type, log_id: log.id, to, cc, bcc }
             });
 
             if (error) {

@@ -13,6 +13,7 @@ import {
     Edit2, RefreshCw, Plus, Trash2, Save, X
 } from 'lucide-react';
 import type { DocumentStatus } from '../../types';
+import { EmailDrawer } from '../../components/EmailDrawer';
 
 const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: string; icon: any }> = {
     draft: { label: 'Brouillon', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', icon: FileText },
@@ -31,6 +32,7 @@ export function DocumentDetail() {
     const { data: emailLogs = [] } = getEmailLogs(id!);
     const [isEditing, setIsEditing] = useState(false);
     const [editLines, setEditLines] = useState<{ description: string; quantity: number; unit_price: number }[]>([]);
+    const [isEmailDrawerOpen, setIsEmailDrawerOpen] = useState(false);
 
     // Subscribe to Email Logs changes in Realtime
     useEffect(() => {
@@ -83,6 +85,25 @@ export function DocumentDetail() {
 
     return (
         <div className="dd animate-fade-in">
+            <EmailDrawer
+                isOpen={isEmailDrawerOpen}
+                onClose={() => setIsEmailDrawerOpen(false)}
+                onSend={async (data) => {
+                    await sendEmail.mutateAsync({
+                        id: doc.id,
+                        type: doc.status === 'draft' ? doc.type : 'resend',
+                        to: data.to,
+                        cc: data.cc,
+                        bcc: data.bcc,
+                        number: doc.number || ''
+                    });
+                }}
+                initialTo={doc.client?.email || ''}
+                documentNumber={doc.number || ''}
+                type={doc.type}
+                isSending={isSendingEmail}
+            />
+
             {/* Header */}
             <div className="dd-header">
                 <div className="dd-header-left">
@@ -128,24 +149,16 @@ export function DocumentDetail() {
                         </button>
                     )}
 
-                    {/* 4. Envoyer */}
-                    {doc.public_url && doc.status === 'draft' && (
+                    {/* 4. Envoyer (Persistent logic) */}
+                    {doc.public_url && doc.status !== 'paid' && doc.status !== 'cancelled' && (
                         <button
-                            onClick={() => {
-                                if (confirm('Envoyer le document par email au client ?')) {
-                                    sendEmail.mutate({
-                                        id: doc.id,
-                                        type: doc.type,
-                                        recipient: doc.client?.email || '',
-                                        number: doc.number || ''
-                                    });
-                                }
-                            }}
+                            onClick={() => setIsEmailDrawerOpen(true)}
                             disabled={isSendingEmail}
-                            className="dd-btn dd-btn-primary"
+                            className={`dd-btn ${doc.status === 'draft' ? 'dd-btn-primary' : 'dd-btn-secondary'}`}
+                            title={doc.status === 'draft' ? "Envoyer par email" : "Renvoyer par email"}
                         >
                             {isSendingEmail ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
-                            Envoyer
+                            {doc.status === 'draft' && "Envoyer"}
                         </button>
                     )}
 
@@ -295,23 +308,7 @@ export function DocumentDetail() {
                                 ))}
                             </div>
                         )}
-                        {(doc.status === 'sent' || doc.status === 'overdue') && (
-                            <button
-                                onClick={() => {
-                                    if (confirm("Renvoyer l'email ?")) {
-                                        sendEmail.mutate({
-                                            id: doc.id,
-                                            type: 'resend',
-                                            recipient: doc.client?.email || '',
-                                            number: doc.number || ''
-                                        });
-                                    }
-                                }}
-                                className="dd-sidebar-link"
-                            >
-                                Renvoyer l'email
-                            </button>
-                        )}
+
                     </div>
                 </div>
             </div>
