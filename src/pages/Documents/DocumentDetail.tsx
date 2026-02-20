@@ -9,7 +9,7 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
     ArrowLeft, FileText, Download, Send, CheckCircle,
-    AlertCircle, Printer, Mail, Loader2,
+    AlertCircle, Printer, Mail, Loader2, Clock,
     Edit2, RefreshCw, Plus, Trash2, Save, X, ChevronRight
 } from 'lucide-react';
 import type { DocumentStatus } from '../../types';
@@ -35,6 +35,7 @@ export function DocumentDetail() {
     const [isEditing, setIsEditing] = useState(false);
     const [editLines, setEditLines] = useState<{ name: string; description: string; quantity: number; unit_price: number }[]>([]);
     const [isEmailDrawerOpen, setIsEmailDrawerOpen] = useState(false);
+    const [reminderTypeOverride, setReminderTypeOverride] = useState<string | null>(null);
     const { setPageBreadcrumb } = useOutletContext<{ setPageBreadcrumb: (b: React.ReactNode) => void }>();
 
     // Subscribe to Email Logs changes in Realtime
@@ -110,11 +111,11 @@ export function DocumentDetail() {
         <div className="dd animate-fade-in">
             <EmailDrawer
                 isOpen={isEmailDrawerOpen}
-                onClose={() => setIsEmailDrawerOpen(false)}
+                onClose={() => { setIsEmailDrawerOpen(false); setReminderTypeOverride(null); }}
                 onSend={async (data) => {
                     await sendEmail.mutateAsync({
                         id: doc.id,
-                        type: doc.status === 'draft' ? doc.type : 'resend',
+                        type: reminderTypeOverride || (doc.status === 'draft' ? doc.type : 'resend'),
                         to: data.to,
                         cc: data.cc,
                         bcc: data.bcc,
@@ -125,6 +126,7 @@ export function DocumentDetail() {
                 documentNumber={doc.number || ''}
                 type={doc.type}
                 isSending={isSendingEmail}
+                titleOverride={reminderTypeOverride ? `Envoyer la relance manuelle (${reminderTypeOverride.replace('auto_reminder_', '')})` : undefined}
             />
 
             {/* Header */}
@@ -315,6 +317,47 @@ export function DocumentDetail() {
 
                 {/* Sidebar */}
                 <div className="dd-sidebar">
+                    {doc.type === 'invoice' && doc.status !== 'draft' && (
+                        <div className="dd-sidebar-card" style={{ marginBottom: '1.5rem' }}>
+                            <div className="dd-sidebar-title"><Clock size={16} /> Relances programmées</div>
+                            <div className="dd-timeline">
+                                {[
+                                    { key: 'auto_reminder_J-7', label: 'Rappel J-7', desc: 'Avant échéance' },
+                                    { key: 'auto_reminder_J+3', label: 'Retard J+3', desc: 'Après échéance' },
+                                    { key: 'auto_reminder_J+10', label: 'Retard J+10', desc: 'Après échéance' },
+                                ].map((step) => {
+                                    const matchingLog = emailLogs.find(l => l.type === step.key && l.status === 'sent');
+                                    const isSent = !!matchingLog;
+                                    return (
+                                        <div key={step.key} className={`dd-tl-item ${isSent ? 'dd-tl-sent' : ''}`}>
+                                            <div className="dd-tl-icon">
+                                                {isSent ? <CheckCircle size={14} /> : <div className="dd-tl-dot" />}
+                                            </div>
+                                            <div className="dd-tl-content">
+                                                <div className="dd-tl-title">
+                                                    {step.label}
+                                                    {isSent && matchingLog && <span className="dd-tl-date">{format(parseISO(matchingLog.created_at), 'dd/MM/yy')}</span>}
+                                                </div>
+                                                <div className="dd-tl-desc">{step.desc}</div>
+                                                {!isSent && doc.status !== 'paid' && doc.status !== 'cancelled' && (
+                                                    <button
+                                                        className="dd-tl-btn"
+                                                        onClick={() => {
+                                                            setReminderTypeOverride(step.key);
+                                                            setIsEmailDrawerOpen(true);
+                                                        }}
+                                                    >
+                                                        <Send size={10} /> Envoyer
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="dd-sidebar-card">
                         <div className="dd-sidebar-title"><Mail size={16} /> Historique des envois</div>
                         {emailLogs.length === 0 ? (
@@ -437,6 +480,33 @@ const ddStyles = `
         color: var(--primary); cursor: pointer; background: none; border: none; padding: 0;
     }
     .dd-sidebar-link:hover { text-decoration: underline; }
+
+    /* Timeline */
+    .dd-timeline { display: flex; flex-direction: column; gap: 0; position: relative; padding-left: 0.5rem; margin-top: 1rem; }
+    .dd-tl-item { display: flex; gap: 1rem; padding-bottom: 1.25rem; position: relative; }
+    .dd-tl-item:not(:last-child)::before {
+        content: ''; position: absolute; left: 7px; top: 20px; bottom: 0; width: 2px;
+        background: var(--border); z-index: 1;
+    }
+    .dd-tl-sent:not(:last-child)::before { background: #22c55e; }
+    .dd-tl-icon {
+        width: 16px; height: 16px; border-radius: 50%; background: var(--bg-card);
+        display: flex; align-items: center; justify-content: center; z-index: 2; margin-top: 2px;
+        color: var(--border);
+    }
+    .dd-tl-sent .dd-tl-icon { color: #22c55e; }
+    .dd-tl-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+    .dd-tl-content { flex: 1; }
+    .dd-tl-title { font-weight: 600; font-size: 0.8125rem; display: flex; align-items: center; justify-content: space-between; }
+    .dd-tl-date { font-weight: 400; font-size: 0.6875rem; color: var(--text-muted); }
+    .dd-tl-desc { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.375rem; }
+    .dd-tl-btn {
+        background: none; border: 1px solid var(--border); padding: 0.25rem 0.625rem; border-radius: var(--radius-sm);
+        font-size: 0.6875rem; font-weight: 600; color: var(--text-secondary); cursor: pointer;
+        display: flex; align-items: center; gap: 0.25rem; transition: all var(--transition-fast);
+        margin-top: 0.25rem;
+    }
+    .dd-tl-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
 
     /* Email logs */
     .dd-email-logs { display: flex; flex-direction: column; gap: 0.5rem; }

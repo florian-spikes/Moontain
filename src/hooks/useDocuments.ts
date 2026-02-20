@@ -96,7 +96,7 @@ export function useDocuments() {
     });
 
     const sendEmail = useMutation({
-        mutationFn: async ({ id, type, to, cc, bcc, number }: { id: string, type: 'quote' | 'invoice' | 'reminder' | 'resend', to: string | string[], cc?: string[], bcc?: string[], number: string }) => {
+        mutationFn: async ({ id, type, to, cc, bcc, number }: { id: string, type: string, to: string | string[], cc?: string[], bcc?: string[], number: string }) => {
             // 1. Insert "Sending..." log immediately
             const recipientsStr = Array.isArray(to) ? to.join(', ') : to;
 

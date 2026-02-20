@@ -10,9 +10,10 @@ interface EmailDrawerProps {
     documentNumber: string;
     type: 'invoice' | 'quote';
     isSending: boolean;
+    titleOverride?: string;
 }
 
-export function EmailDrawer({ isOpen, onClose, onSend, initialTo, documentNumber, type, isSending }: EmailDrawerProps) {
+export function EmailDrawer({ isOpen, onClose, onSend, initialTo, documentNumber, type, isSending, titleOverride }: EmailDrawerProps) {
     const [to, setTo] = useState<string[]>([initialTo]);
     const [cc, setCc] = useState<string[]>([]);
     const [bcc, setBcc] = useState<string[]>([]);
@@ -85,7 +86,7 @@ export function EmailDrawer({ isOpen, onClose, onSend, initialTo, documentNumber
             <div className="ed-backdrop" onClick={onClose} />
             <div className="ed-panel animate-slide-in-right">
                 <div className="ed-header">
-                    <h3>Envoyer {type === 'invoice' ? 'la facture' : 'le devis'} {documentNumber}</h3>
+                    <h3>{titleOverride || `Envoyer ${type === 'invoice' ? 'la facture' : 'le devis'} ${documentNumber}`}</h3>
                     <button onClick={onClose} className="ed-close"><X size={20} /></button>
                 </div>
 
