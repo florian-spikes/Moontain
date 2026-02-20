@@ -1,5 +1,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { addMonths, addYears, format } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import type { Document, NewDocument, EmailLog } from '../types';
 
@@ -62,6 +63,7 @@ export function useDocuments() {
                     description: line.description,
                     quantity: line.quantity,
                     unit_price: line.unit_price,
+                    catalog_item_id: line.catalog_item_id || null,
                 }));
 
                 const { error: linesError } = await supabase
@@ -137,10 +139,49 @@ export function useDocuments() {
                 .from('documents')
                 .update({ status })
                 .eq('id', id)
-                .select()
+                .select('*, lines:document_lines(*, catalog_item:catalog_items(*))')
                 .single();
 
             if (error) throw error;
+
+            // Automation: Generate services if quote is accepted
+            if (status === 'accepted' && data.type === 'quote' && data.lines) {
+                const servicesToCreate = data.lines
+                    .filter((line: any) => line.catalog_item && line.catalog_item.billing_mode === 'subscription')
+                    .map((line: any) => {
+                        const catalogItem = line.catalog_item;
+                        const startDate = new Date();
+                        let renewalDate = null;
+
+                        if (catalogItem.billing_frequency === 'monthly') {
+                            renewalDate = addMonths(startDate, 1);
+                        } else if (catalogItem.billing_frequency === 'yearly') {
+                            renewalDate = addYears(startDate, 1);
+                        }
+
+                        return {
+                            client_id: data.client_id,
+                            name: line.description.split('\n')[0] || catalogItem.name, // Usually the first line is the main title
+                            type: catalogItem.service_type || 'other',
+                            price: line.unit_price * line.quantity,
+                            start_date: format(startDate, 'yyyy-MM-dd'),
+                            renewal_date: renewalDate ? format(renewalDate, 'yyyy-MM-dd') : null,
+                            end_date: catalogItem.end_date || null,
+                            notes: `Service généré automatiquement depuis le Devis #${data.number || data.id}`
+                        };
+                    });
+
+                if (servicesToCreate.length > 0) {
+                    const { error: serviceError } = await supabase.from('services').insert(servicesToCreate);
+                    if (serviceError) console.error("Failed to insert automated services:", serviceError);
+                    else {
+                        // Refresh services list across the app
+                        queryClient.invalidateQueries({ queryKey: ['services'] });
+                        queryClient.invalidateQueries({ queryKey: ['client', data.client_id] });
+                    }
+                }
+            }
+
             return data;
         },
         onSuccess: () => {
@@ -154,7 +195,7 @@ export function useDocuments() {
             id: string;
             date?: string;
             due_date?: string;
-            lines?: { description: string; quantity: number; unit_price: number }[];
+            lines?: { description: string; quantity: number; unit_price: number; catalog_item_id?: string | null }[];
         }) => {
             const updates: any = {};
             if (date) updates.date = date;
@@ -169,7 +210,13 @@ export function useDocuments() {
                 // Delete old lines then insert new
                 await supabase.from('document_lines').delete().eq('document_id', id);
                 const { error: linesErr } = await supabase.from('document_lines').insert(
-                    lines.map(l => ({ document_id: id, description: l.description, quantity: l.quantity, unit_price: l.unit_price }))
+                    lines.map(l => ({
+                        document_id: id,
+                        description: l.description,
+                        quantity: l.quantity,
+                        unit_price: l.unit_price,
+                        catalog_item_id: l.catalog_item_id || null
+                    }))
                 );
                 if (linesErr) throw linesErr;
             }

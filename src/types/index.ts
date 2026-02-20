@@ -47,11 +47,12 @@ export interface CatalogItem {
     subscription_type: 'ongoing' | 'fixed' | null;
     start_date: string | null;
     end_date: string | null;
+    service_type: 'hosting' | 'domain' | 'license' | 'maintenance' | 'other' | null;
 }
 
 export type NewCatalogItem = Omit<CatalogItem, 'id' | 'created_at'>;
 
-export type DocumentStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+export type DocumentStatus = 'draft' | 'sent' | 'accepted' | 'paid' | 'overdue' | 'cancelled';
 export type DocumentType = 'quote' | 'invoice';
 
 export interface DocumentLine {
@@ -61,6 +62,7 @@ export interface DocumentLine {
     quantity: number;
     unit_price: number;
     total: number;
+    catalog_item_id?: string | null;
 }
 
 export interface Document {
@@ -89,6 +91,7 @@ export interface NewDocument {
         description: string;
         quantity: number;
         unit_price: number;
+        catalog_item_id?: string | null;
     }[];
 }
 

@@ -19,6 +19,7 @@ import { useOutletContext } from 'react-router-dom';
 const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: string; icon: any }> = {
     draft: { label: 'Brouillon', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', icon: FileText },
     sent: { label: 'Envoyé', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', icon: Send },
+    accepted: { label: 'Accepté', color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)', icon: CheckCircle },
     paid: { label: 'Payé', color: '#22c55e', bg: 'rgba(34,197,94,0.1)', icon: CheckCircle },
     overdue: { label: 'En retard', color: '#ef4444', bg: 'rgba(239,68,68,0.1)', icon: AlertCircle },
     cancelled: { label: 'Annulé', color: '#6b7280', bg: 'rgba(107,114,128,0.1)', icon: AlertCircle },
@@ -180,12 +181,21 @@ export function DocumentDetail() {
                     )}
 
                     {/* Status Actions */}
-                    {doc.status === 'sent' && (
+                    {doc.type === 'invoice' && doc.status === 'sent' && (
                         <button
-                            onClick={() => { if (confirm('Marquer ce document comme payé ?')) updateStatus.mutate({ id: doc.id, status: 'paid' }); }}
+                            onClick={() => { if (confirm('Marquer cette facture comme payée ?')) updateStatus.mutate({ id: doc.id, status: 'paid' }); }}
                             className="dd-btn dd-btn-success"
                         >
                             <CheckCircle size={16} /> Marquer Payé
+                        </button>
+                    )}
+
+                    {doc.type === 'quote' && (doc.status === 'sent' || doc.status === 'draft') && (
+                        <button
+                            onClick={() => { if (confirm('Accepter ce devis et générer les abonnements liés (s\'il y en a) ?')) updateStatus.mutate({ id: doc.id, status: 'accepted' }); }}
+                            className="dd-btn dd-btn-success"
+                        >
+                            <CheckCircle size={16} /> Accepter le Devis
                         </button>
                     )}
                 </div>

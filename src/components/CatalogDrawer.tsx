@@ -17,6 +17,7 @@ const itemSchema = z.object({
     subscription_type: z.enum(['ongoing', 'fixed']).optional(),
     start_date: z.string().optional(),
     end_date: z.string().optional(),
+    service_type: z.enum(['hosting', 'domain', 'license', 'maintenance', 'other']).nullable().optional(),
 }).refine(data => {
     if (data.billing_mode === 'subscription' && data.subscription_type === 'fixed') {
         return !!data.start_date && !!data.end_date;
@@ -51,6 +52,7 @@ export function CatalogDrawer({ isOpen, onClose, item, onSave, isSaving }: Catal
             subscription_type: item?.subscription_type || 'ongoing',
             start_date: item?.start_date || '',
             end_date: item?.end_date || '',
+            service_type: item?.service_type || null,
         },
     });
 
@@ -67,6 +69,7 @@ export function CatalogDrawer({ isOpen, onClose, item, onSave, isSaving }: Catal
                 subscription_type: item?.subscription_type || 'ongoing',
                 start_date: item?.start_date || '',
                 end_date: item?.end_date || '',
+                service_type: item?.service_type || null,
             });
         }
     }, [isOpen, item, reset]);
@@ -118,6 +121,7 @@ export function CatalogDrawer({ isOpen, onClose, item, onSave, isSaving }: Catal
             subscription_type: data.billing_mode === 'subscription' ? (data.subscription_type ?? 'ongoing') : null,
             start_date: (data.billing_mode === 'subscription' && data.subscription_type === 'fixed') ? (data.start_date || null) : null,
             end_date: (data.billing_mode === 'subscription' && data.subscription_type === 'fixed') ? (data.end_date || null) : null,
+            service_type: data.billing_mode === 'subscription' ? (data.service_type ?? 'other') : null,
         });
         onClose();
     };
@@ -256,6 +260,26 @@ export function CatalogDrawer({ isOpen, onClose, item, onSave, isSaving }: Catal
                                 </div>
                             </div>
 
+                            <div className="catd-row animate-fade-in" style={{ marginTop: '0.25rem' }}>
+                                <div className="catd-group">
+                                    <label className="catd-label">
+                                        <Package size={14} />
+                                        Nature du service (Génération automatique)
+                                    </label>
+                                    <div className="catd-select-wrapper">
+                                        <select {...register('service_type')} className="catd-input catd-select">
+                                            <option value="hosting">Hébergement</option>
+                                            <option value="domain">Nom de domaine</option>
+                                            <option value="license">Licence</option>
+                                            <option value="maintenance">Maintenance</option>
+                                            <option value="other">Autre</option>
+                                        </select>
+                                        <ChevronDown size={16} className="catd-select-icon" />
+                                    </div>
+                                    <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Ce type de service sera automatiquement attribué au client lors de l'acceptation d'un devis lié à cette prestation.</p>
+                                </div>
+                            </div>
+
                             {/* Fixed Term Dates */}
                             {subType === 'fixed' && (
                                 <div className="catd-section-fixed animate-fade-in">
@@ -315,7 +339,7 @@ export function CatalogDrawer({ isOpen, onClose, item, onSave, isSaving }: Catal
             </div>
 
             <style>{catdDrawerStyles}</style>
-        </div>
+        </div >
     );
 }
 
