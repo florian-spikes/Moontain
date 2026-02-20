@@ -22,15 +22,15 @@ serve(async (req) => {
         };
 
         // 1. Check Invoices (Reminders)
-        // Criteria: -7, -3, +3, +10 days from due_date
-        const { data: documents } = await supabaseClient
+        // Criteria: -15, -7, -1, +3, +10 days from due_date
+        const { data: invoices } = await supabaseClient
             .from('documents')
             .select('*')
             .eq('type', 'invoice')
             .in('status', ['sent', 'overdue']);
 
-        if (documents) {
-            for (const doc of documents) {
+        if (invoices) {
+            for (const doc of invoices) {
                 if (!doc.due_date) continue;
 
                 const dueDate = new Date(doc.due_date);
@@ -40,24 +40,56 @@ serve(async (req) => {
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Positive = overdue, Negative = upcoming
 
                 let shouldRemind = false;
-                // Reminder logic: J-7, J+3, J+10
-                if (diffDays === -7 || diffDays === 3 || diffDays === 10) {
+                // Reminder logic: J-15, J-7, J-1, J+3, J+10
+                if ([-15, -7, -1, 3, 10].includes(diffDays)) {
                     shouldRemind = true;
                 }
 
                 if (shouldRemind) {
-                    // Check if already sent today to avoid double send if cron runs multiple times
-                    // (Optional but good practice)
-
                     const reminderType = diffDays < 0 ? `auto_reminder_J${diffDays}` : `auto_reminder_J+${diffDays}`;
 
-                    // Call send-document-email
                     const { error } = await supabaseClient.functions.invoke('send-document-email', {
                         body: { document_id: doc.id, type: reminderType }
                     });
 
                     if (error) results.errors.push(`Failed to remind invoice ${doc.id}: ${error.message}`);
                     else results.invoicesReminded++;
+                }
+            }
+        }
+
+        // 1b. Check Quotes (Reminders)
+        // Criteria: +3, +10 days from 'date' (since quote doesn't necessarily have a strict due_date, we'll use date)
+        const { data: quotes } = await supabaseClient
+            .from('documents')
+            .select('*')
+            .eq('type', 'quote')
+            .eq('status', 'sent');
+
+        if (quotes) {
+            for (const doc of quotes) {
+                if (!doc.date) continue;
+
+                const issueDate = new Date(doc.date);
+                issueDate.setHours(0, 0, 0, 0);
+
+                const diffTime = today.getTime() - issueDate.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Positive = days since issue
+
+                let shouldRemind = false;
+                // Reminder logic: 3, 10
+                if ([3, 10].includes(diffDays)) {
+                    shouldRemind = true;
+                }
+
+                if (shouldRemind) {
+                    const reminderType = `auto_reminder_quote_J+${diffDays}`;
+
+                    const { error } = await supabaseClient.functions.invoke('send-document-email', {
+                        body: { document_id: doc.id, type: reminderType }
+                    });
+
+                    if (error) results.errors.push(`Failed to remind quote ${doc.id}: ${error.message}`);
                 }
             }
         }

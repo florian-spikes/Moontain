@@ -322,9 +322,11 @@ export function DocumentDetail() {
                             <div className="dd-sidebar-title"><Clock size={16} /> Relances programmées</div>
                             <div className="dd-timeline">
                                 {[
+                                    { key: 'auto_reminder_J-15', label: 'Rappel J-15', desc: 'Avant échéance (préventif)' },
                                     { key: 'auto_reminder_J-7', label: 'Rappel J-7', desc: 'Avant échéance' },
-                                    { key: 'auto_reminder_J+3', label: 'Retard J+3', desc: 'Après échéance' },
-                                    { key: 'auto_reminder_J+10', label: 'Retard J+10', desc: 'Après échéance' },
+                                    { key: 'auto_reminder_J-1', label: 'Rappel J-1', desc: 'Dernier rappel' },
+                                    { key: 'auto_reminder_J+3', label: 'Retard J+3', desc: 'Après échéance (stricte)' },
+                                    { key: 'auto_reminder_J+10', label: 'Retard J+10', desc: 'Après échéance (finale)' },
                                 ].map((step) => {
                                     const matchingLog = emailLogs.find(l => l.type === step.key && l.status === 'sent');
                                     const isSent = !!matchingLog;
@@ -340,6 +342,46 @@ export function DocumentDetail() {
                                                 </div>
                                                 <div className="dd-tl-desc">{step.desc}</div>
                                                 {!isSent && doc.status !== 'paid' && doc.status !== 'cancelled' && (
+                                                    <button
+                                                        className="dd-tl-btn"
+                                                        onClick={() => {
+                                                            setReminderTypeOverride(step.key);
+                                                            setIsEmailDrawerOpen(true);
+                                                        }}
+                                                    >
+                                                        <Send size={10} /> Envoyer
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {doc.type === 'quote' && doc.status !== 'draft' && (
+                        <div className="dd-sidebar-card" style={{ marginBottom: '1.5rem' }}>
+                            <div className="dd-sidebar-title"><Clock size={16} /> Relances programmées</div>
+                            <div className="dd-timeline">
+                                {[
+                                    { key: 'auto_reminder_quote_J+3', label: 'Rappel J+3', desc: 'Après envoi' },
+                                    { key: 'auto_reminder_quote_J+10', label: 'Rappel J+10', desc: 'Proposition appel' },
+                                ].map((step) => {
+                                    const matchingLog = emailLogs.find(l => l.type === step.key && l.status === 'sent');
+                                    const isSent = !!matchingLog;
+                                    return (
+                                        <div key={step.key} className={`dd-tl-item ${isSent ? 'dd-tl-sent' : ''}`}>
+                                            <div className="dd-tl-icon">
+                                                {isSent ? <CheckCircle size={14} /> : <div className="dd-tl-dot" />}
+                                            </div>
+                                            <div className="dd-tl-content">
+                                                <div className="dd-tl-title">
+                                                    {step.label}
+                                                    {isSent && matchingLog && <span className="dd-tl-date">{format(parseISO(matchingLog.created_at), 'dd/MM/yy')}</span>}
+                                                </div>
+                                                <div className="dd-tl-desc">{step.desc}</div>
+                                                {!isSent && doc.status !== 'accepted' && doc.status !== 'cancelled' && (
                                                     <button
                                                         className="dd-tl-btn"
                                                         onClick={() => {

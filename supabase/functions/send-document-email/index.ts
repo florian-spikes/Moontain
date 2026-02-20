@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { Resend } from "npm:resend@2.0.0";
-import { getEmailHtml } from "./templates.ts";
+import { getEmailTemplate } from "./templates.ts";
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 const corsHeaders = {
@@ -52,22 +52,10 @@ serve(async (req) => {
         };
 
         // 2. Prepare Email HTML
-        const html = getEmailHtml(type, docForTemplate);
-
-        let subject = '';
-        const docLabel = doc.number || 'Brouillon';
-
-        if (type.startsWith('auto_reminder') || type === 'reminder') {
-            subject = `Rappel : Votre facture Moontain.studio ${docLabel} du ${formattedDate} est en attente`;
-        } else {
-            switch (type) {
-                case 'quote': subject = `Votre devis Moontain.studio ${docLabel} du ${formattedDate} est disponible`; break;
-                case 'invoice': subject = `Votre facture Moontain.studio ${docLabel} du ${formattedDate} est disponible`; break;
-                case 'resend': subject = `Copie : ${doc.type === 'quote' ? 'Devis' : 'Facture'} Moontain.studio ${docLabel}`; break;
-            }
-        }
+        const { subject, html } = getEmailTemplate(type, docForTemplate);
 
         const recipients = to || [doc.client.email];
+        const docLabel = doc.number || 'Brouillon';
 
         // 3. Send Email
         const { data: emailData, error: emailError } = await resend.emails.send({
