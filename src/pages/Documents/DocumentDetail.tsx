@@ -60,20 +60,6 @@ export function DocumentDetail() {
         };
     }, [id, queryClient]);
 
-    if (isLoading) return (
-        <div className="dd-loading animate-fade-in">
-            <div className="dd-loading-spinner" />
-            <p>Chargement du document...</p>
-            <style>{ddStyles}</style>
-        </div>
-    );
-    if (error || !doc) return <div className="dd-loading" style={{ color: 'var(--danger)' }}>Document introuvable</div>;
-
-    const conf = statusConfig[doc.status];
-    const StatusIcon = conf.icon;
-    const isGeneratingPdf = generatePdf.isPending;
-    const isSendingEmail = sendEmail.isPending;
-
     useEffect(() => {
         if (doc) {
             setPageBreadcrumb(
@@ -93,6 +79,20 @@ export function DocumentDetail() {
         }
         return () => setPageBreadcrumb(null);
     }, [doc, setPageBreadcrumb]);
+
+    if (isLoading) return (
+        <div className="dd-loading animate-fade-in">
+            <div className="dd-loading-spinner" />
+            <p>Chargement du document...</p>
+            <style>{ddStyles}</style>
+        </div>
+    );
+    if (error || !doc) return <div className="dd-loading" style={{ color: 'var(--danger)' }}>Document introuvable</div>;
+
+    const conf = statusConfig[doc.status];
+    const StatusIcon = conf.icon;
+    const isGeneratingPdf = generatePdf.isPending;
+    const isSendingEmail = sendEmail.isPending;
 
     const startEditing = () => {
         setEditLines((doc.lines || []).map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price })));
