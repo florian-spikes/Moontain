@@ -9,13 +9,10 @@ import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 
 import { ClientsList } from './pages/Clients/ClientsList';
-import { NewClient } from './pages/Clients/NewClient';
 import { ClientDetail } from './pages/Clients/ClientDetail';
 import { ServicesList } from './pages/Services/ServicesList';
 import { CatalogList } from './pages/Catalog/CatalogList';
-import { NewCatalogItem } from './pages/Catalog/NewCatalogItem';
 import { DocumentsList } from './pages/Documents/DocumentsList';
-import { NewDocument } from './pages/Documents/NewDocument';
 import { DocumentDetail } from './pages/Documents/DocumentDetail';
 import { Dashboard } from './pages/Dashboard';
 
@@ -33,14 +30,11 @@ export default function App() {
             <Route index element={<Dashboard />} />
 
             <Route path="clients" element={<ClientsList />} />
-            <Route path="clients/new" element={<NewClient />} />
             <Route path="clients/:id" element={<ClientDetail />} />
 
             <Route path="catalog" element={<CatalogList />} />
-            <Route path="catalog/new" element={<NewCatalogItem />} />
 
             <Route path="documents" element={<DocumentsList />} />
-            <Route path="documents/new" element={<NewDocument />} />
             <Route path="documents/:id" element={<DocumentDetail />} />
 
             <Route path="services" element={<ServicesList />} />

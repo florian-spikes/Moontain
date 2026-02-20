@@ -107,18 +107,22 @@ export function DocumentDetail() {
             {/* Header */}
             <div className="dd-header">
                 <div className="dd-header-left">
-                    <Link to="/documents" className="dd-back"><ArrowLeft size={18} /></Link>
+                    <Link to={doc.client_id ? `/clients/${doc.client_id}` : "/documents"} className="dd-back"><ArrowLeft size={18} /></Link>
                     <div>
+                        <div className="dd-breadcrumb">
+                            {doc.client && (
+                                <>
+                                    <Link to={`/clients/${doc.client.id}`} className="dd-breadcrumb-link">{doc.client.name}</Link>
+                                    <span className="dd-breadcrumb-sep">/</span>
+                                </>
+                            )}
+                            <span className="dd-breadcrumb-current">{doc.type === 'quote' ? 'Devis' : 'Facture'}</span>
+                        </div>
                         <div className="dd-header-title">
-                            <div className="dd-doc-icon" style={{ background: conf.bg, color: conf.color }}>
-                                {doc.type === 'quote' ? <FileText size={20} /> : <FileText size={20} />}
-                            </div>
-                            <div>
-                                <h1 className="dd-title">{doc.number || 'Brouillon'}</h1>
-                                <span className="dd-badge" style={{ background: conf.bg, color: conf.color }}>
-                                    <StatusIcon size={12} /> {conf.label}
-                                </span>
-                            </div>
+                            <h1 className="dd-title">{doc.number || 'Brouillon'}</h1>
+                            <span className="dd-badge" style={{ background: conf.bg, color: conf.color }}>
+                                <StatusIcon size={12} /> {conf.label}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -330,8 +334,12 @@ const ddStyles = `
         color: var(--text-secondary); transition: all var(--transition-smooth); text-decoration: none;
     }
     .dd-back:hover { color: var(--text-primary); border-color: var(--primary); background: var(--primary-light); }
+    .dd-breadcrumb { display: flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; font-weight: 500; margin-bottom: 0.25rem; }
+    .dd-breadcrumb-link { color: var(--text-secondary); text-decoration: none; transition: color var(--transition-fast); }
+    .dd-breadcrumb-link:hover { color: var(--primary); text-decoration: underline; }
+    .dd-breadcrumb-sep { color: var(--border-light); }
+    .dd-breadcrumb-current { color: var(--text-muted); }
     .dd-header-title { display: flex; align-items: center; gap: 0.75rem; }
-    .dd-doc-icon { width: 44px; height: 44px; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; }
     .dd-title { font-size: 1.375rem; font-weight: 700; }
     .dd-badge {
         display: inline-flex; align-items: center; gap: 0.375rem;

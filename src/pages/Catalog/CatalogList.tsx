@@ -1,13 +1,14 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Plus, Search, Trash2, Package, Repeat, Calendar } from 'lucide-react';
 import { useCatalog } from '../../hooks/useCatalog';
 import { format, parseISO } from 'date-fns';
+import { CatalogDrawer } from '../../components/CatalogDrawer';
 
 export function CatalogList() {
-    const { catalogItems, isLoading, error, deleteCatalogItem } = useCatalog();
+    const { catalogItems, isLoading, error, deleteCatalogItem, createCatalogItem } = useCatalog();
     const [searchTerm, setSearchTerm] = useState('');
+    const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
 
     if (isLoading) return (
         <div className="ct-loading animate-fade-in">
@@ -31,16 +32,25 @@ export function CatalogList() {
 
     return (
         <div className="ct animate-fade-in">
+            <CatalogDrawer
+                isOpen={isNewDrawerOpen}
+                onClose={() => setIsNewDrawerOpen(false)}
+                onSave={async (data) => {
+                    await createCatalogItem.mutateAsync(data as any);
+                }}
+                isSaving={createCatalogItem.isPending}
+            />
+
             {/* Header */}
             <div className="ct-header">
                 <div>
                     <h1 className="ct-title">Catalogue</h1>
                     <p className="ct-subtitle">Gérez vos prestations et produits · {filteredItems.length} élément{filteredItems.length > 1 ? 's' : ''}</p>
                 </div>
-                <Link to="/catalog/new" className="ct-cta">
+                <button onClick={() => setIsNewDrawerOpen(true)} className="ct-cta" style={{ border: 'none', cursor: 'pointer' }}>
                     <Plus size={18} />
                     Nouvelle Prestation
-                </Link>
+                </button>
             </div>
 
             {/* Search */}
@@ -112,9 +122,9 @@ export function CatalogList() {
                     <div className="ct-empty-icon"><Package size={32} /></div>
                     <h3>Catalogue vide</h3>
                     <p>Ajoutez vos premières prestations</p>
-                    <Link to="/catalog/new" className="ct-cta" style={{ marginTop: '1rem' }}>
+                    <button onClick={() => setIsNewDrawerOpen(true)} className="ct-cta" style={{ marginTop: '1rem', border: 'none', cursor: 'pointer' }}>
                         <Plus size={18} /> Nouvelle Prestation
-                    </Link>
+                    </button>
                 </div>
             )}
 

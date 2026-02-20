@@ -6,6 +6,8 @@ import { useDocuments } from '../../hooks/useDocuments';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { clsx } from 'clsx';
+import { DocumentDrawer } from '../../components/DocumentDrawer';
+import { useNavigate } from 'react-router-dom';
 import type { DocumentStatus } from '../../types';
 
 const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: string; icon: any }> = {
@@ -17,9 +19,11 @@ const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: s
 };
 
 export function DocumentsList() {
-    const { documents, isLoading, error } = useDocuments();
+    const { documents, isLoading, error, createDocument } = useDocuments();
     const [filterStatus, setFilterStatus] = useState<DocumentStatus | 'all'>('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
+    const navigate = useNavigate();
 
     if (isLoading) return (
         <div className="dl-loading animate-fade-in">
@@ -47,16 +51,26 @@ export function DocumentsList() {
 
     return (
         <div className="dl animate-fade-in">
+            <DocumentDrawer
+                isOpen={isNewDrawerOpen}
+                onClose={() => setIsNewDrawerOpen(false)}
+                onSave={async (data) => {
+                    const newDoc = await createDocument.mutateAsync(data as any);
+                    navigate(`/documents/${newDoc.id}`);
+                }}
+                isSaving={createDocument.isPending}
+            />
+
             {/* Header */}
             <div className="dl-header">
                 <div>
                     <h1 className="dl-title">Documents</h1>
                     <p className="dl-subtitle">Devis et factures · {filteredDocs.length} résultat{filteredDocs.length > 1 ? 's' : ''}</p>
                 </div>
-                <Link to="/documents/new" className="dl-cta">
+                <button onClick={() => setIsNewDrawerOpen(true)} className="dl-cta" style={{ border: 'none', cursor: 'pointer' }}>
                     <Plus size={18} />
                     Nouveau Document
-                </Link>
+                </button>
             </div>
 
             {/* Mini stats */}

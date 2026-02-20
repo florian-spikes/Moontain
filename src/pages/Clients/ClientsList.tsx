@@ -1,14 +1,15 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Edit2, Archive, ArchiveRestore, Users } from 'lucide-react';
 import { useClients } from '../../hooks/useClients';
 import { clsx } from 'clsx';
+import { ClientDrawer } from '../../components/ClientDrawer';
 
 export function ClientsList() {
-    const { clients, isLoading, error, updateClient } = useClients();
+    const { clients, isLoading, error, updateClient, createClient } = useClients();
     const [showArchived, setShowArchived] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
 
     if (isLoading) return (
         <div className="cls-loading animate-fade-in">
@@ -34,16 +35,25 @@ export function ClientsList() {
 
     return (
         <div className="cls animate-fade-in">
+            <ClientDrawer
+                isOpen={isNewDrawerOpen}
+                onClose={() => setIsNewDrawerOpen(false)}
+                onSave={async (data) => {
+                    await createClient.mutateAsync(data as any);
+                }}
+                isSaving={createClient.isPending}
+            />
+
             {/* Header */}
             <div className="cls-header">
                 <div>
                     <h1 className="cls-title">Clients</h1>
                     <p className="cls-subtitle">Gérez votre base de données clients · {filteredClients.length} résultat{filteredClients.length > 1 ? 's' : ''}</p>
                 </div>
-                <Link to="/clients/new" className="cls-cta">
+                <button onClick={() => setIsNewDrawerOpen(true)} className="cls-cta" style={{ border: 'none', cursor: 'pointer' }}>
                     <Plus size={18} />
                     Nouveau Client
-                </Link>
+                </button>
             </div>
 
             {/* Toolbar */}
@@ -116,9 +126,9 @@ export function ClientsList() {
                     <h3>Aucun client trouvé</h3>
                     <p>{searchTerm ? 'Essayez une autre recherche' : 'Commencez par ajouter votre premier client'}</p>
                     {!searchTerm && (
-                        <Link to="/clients/new" className="cls-cta" style={{ marginTop: '1rem' }}>
+                        <button onClick={() => setIsNewDrawerOpen(true)} className="cls-cta" style={{ marginTop: '1rem', border: 'none', cursor: 'pointer' }}>
                             <Plus size={18} /> Nouveau Client
-                        </Link>
+                        </button>
                     )}
                 </div>
             )}

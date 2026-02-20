@@ -11,7 +11,10 @@ import {
 import type { Client, Document, Service, DocumentStatus } from '../../types';
 import { useState } from 'react';
 import { ClientDrawer } from '../../components/ClientDrawer';
+import { DocumentDrawer } from '../../components/DocumentDrawer';
 import { useClients } from '../../hooks/useClients';
+import { useDocuments } from '../../hooks/useDocuments';
+import { useNavigate } from 'react-router-dom';
 
 const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: string; icon: any }> = {
     draft: { label: 'Brouillon', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', icon: FileText },
@@ -24,7 +27,10 @@ const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: s
 export function ClientDetail() {
     const { id } = useParams<{ id: string }>();
     const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+    const [isNewDocDrawerOpen, setIsNewDocDrawerOpen] = useState(false);
     const { updateClient } = useClients();
+    const { createDocument } = useDocuments();
+    const navigate = useNavigate();
 
     const { data: client, isLoading: clientLoading } = useQuery({
         queryKey: ['client', id],
@@ -152,9 +158,9 @@ export function ClientDetail() {
             <div className="cd-card">
                 <div className="cd-section-header">
                     <h3 className="cd-section-title">Historique des documents</h3>
-                    <Link to={`/documents/new?client=${id}`} className="cd-btn cd-btn-primary-sm">
+                    <button onClick={() => setIsNewDocDrawerOpen(true)} className="cd-btn cd-btn-primary-sm" style={{ border: 'none', cursor: 'pointer' }}>
                         + Nouveau
-                    </Link>
+                    </button>
                 </div>
 
                 {documents.length === 0 ? (
@@ -215,6 +221,17 @@ export function ClientDetail() {
                     await updateClient.mutateAsync({ id: client.id, ...data });
                 }}
                 isSaving={updateClient.isPending || (updateClient as any).isLoading}
+            />
+
+            <DocumentDrawer
+                isOpen={isNewDocDrawerOpen}
+                onClose={() => setIsNewDocDrawerOpen(false)}
+                initialClientId={client.id}
+                onSave={async (data) => {
+                    const newDoc = await createDocument.mutateAsync(data as any);
+                    navigate(`/documents/${newDoc.id}`);
+                }}
+                isSaving={createDocument.isPending}
             />
 
             <style>{cdStyles}</style>

@@ -21,38 +21,38 @@ type ClientFormData = z.infer<typeof clientSchema>;
 interface ClientDrawerProps {
     isOpen: boolean;
     onClose: () => void;
-    client: Client;
+    client?: Client;
     onSave: (data: Partial<Client>) => Promise<void>;
     isSaving: boolean;
 }
 
 export function ClientDrawer({ isOpen, onClose, client, onSave, isSaving }: ClientDrawerProps) {
-    const [emoji, setEmoji] = useState(client.emoji || '🏢');
+    const [emoji, setEmoji] = useState(client?.emoji || '🏢');
 
     const { register, handleSubmit, formState: { errors }, reset } = useForm<ClientFormData>({
         resolver: zodResolver(clientSchema),
         defaultValues: {
-            name: client.name || '',
-            email: client.email || '',
-            address: client.address || '',
-            notes: client.notes || '',
-            manager_civility: client.manager_civility || '',
-            manager_first_name: client.manager_first_name || '',
-            manager_last_name: client.manager_last_name || '',
+            name: client?.name || '',
+            email: client?.email || '',
+            address: client?.address || '',
+            notes: client?.notes || '',
+            manager_civility: client?.manager_civility || '',
+            manager_first_name: client?.manager_first_name || '',
+            manager_last_name: client?.manager_last_name || '',
         }
     });
 
     useEffect(() => {
         if (isOpen) {
-            setEmoji(client.emoji || '🏢');
+            setEmoji(client?.emoji || '🏢');
             reset({
-                name: client.name || '',
-                email: client.email || '',
-                address: client.address || '',
-                notes: client.notes || '',
-                manager_civility: client.manager_civility || '',
-                manager_first_name: client.manager_first_name || '',
-                manager_last_name: client.manager_last_name || '',
+                name: client?.name || '',
+                email: client?.email || '',
+                address: client?.address || '',
+                notes: client?.notes || '',
+                manager_civility: client?.manager_civility || '',
+                manager_first_name: client?.manager_first_name || '',
+                manager_last_name: client?.manager_last_name || '',
             });
         }
     }, [isOpen, client, reset]);
@@ -78,7 +78,7 @@ export function ClientDrawer({ isOpen, onClose, client, onSave, isSaving }: Clie
             <div className="cd-backdrop" onClick={onClose} />
             <div className="cd-panel animate-slide-in-right">
                 <div className="cd-header-bar">
-                    <h3>Modifier le client</h3>
+                    <h3>{client ? 'Modifier le client' : 'Nouveau client'}</h3>
                     <button onClick={onClose} className="cd-close"><X size={20} /></button>
                 </div>
 
