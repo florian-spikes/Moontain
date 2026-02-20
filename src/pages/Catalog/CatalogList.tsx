@@ -1,14 +1,16 @@
 
 import { useState } from 'react';
-import { Plus, Search, Trash2, Package, Repeat, Calendar } from 'lucide-react';
+import { Plus, Search, Trash2, Package, Repeat, Calendar, Edit2 } from 'lucide-react';
 import { useCatalog } from '../../hooks/useCatalog';
 import { format, parseISO } from 'date-fns';
 import { CatalogDrawer } from '../../components/CatalogDrawer';
+import type { CatalogItem } from '../../types';
 
 export function CatalogList() {
-    const { catalogItems, isLoading, error, deleteCatalogItem, createCatalogItem } = useCatalog();
+    const { catalogItems, isLoading, error, deleteCatalogItem, createCatalogItem, updateCatalogItem } = useCatalog();
     const [searchTerm, setSearchTerm] = useState('');
-    const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
 
     if (isLoading) return (
         <div className="ct-loading animate-fade-in">
@@ -30,15 +32,35 @@ export function CatalogList() {
         }
     };
 
+    const handleEdit = (item: CatalogItem) => {
+        setSelectedItem(item);
+        setIsDrawerOpen(true);
+    };
+
+    const handleOpenNew = () => {
+        setSelectedItem(null);
+        setIsDrawerOpen(true);
+    };
+
+    const handleDrawerClose = () => {
+        setIsDrawerOpen(false);
+        setTimeout(() => setSelectedItem(null), 300); // Wait for animation
+    };
+
     return (
         <div className="ct animate-fade-in">
             <CatalogDrawer
-                isOpen={isNewDrawerOpen}
-                onClose={() => setIsNewDrawerOpen(false)}
+                isOpen={isDrawerOpen}
+                onClose={handleDrawerClose}
+                item={selectedItem || undefined}
                 onSave={async (data) => {
-                    await createCatalogItem.mutateAsync(data as any);
+                    if (selectedItem) {
+                        await updateCatalogItem.mutateAsync({ id: selectedItem.id, ...data } as any);
+                    } else {
+                        await createCatalogItem.mutateAsync(data as any);
+                    }
                 }}
-                isSaving={createCatalogItem.isPending}
+                isSaving={createCatalogItem.isPending || updateCatalogItem.isPending}
             />
 
             {/* Header */}
@@ -47,7 +69,7 @@ export function CatalogList() {
                     <h1 className="ct-title">Catalogue</h1>
                     <p className="ct-subtitle">Gérez vos prestations et produits · {filteredItems.length} élément{filteredItems.length > 1 ? 's' : ''}</p>
                 </div>
-                <button onClick={() => setIsNewDrawerOpen(true)} className="ct-cta" style={{ border: 'none', cursor: 'pointer' }}>
+                <button onClick={handleOpenNew} className="ct-cta" style={{ border: 'none', cursor: 'pointer' }}>
                     <Plus size={18} />
                     Nouvelle Prestation
                 </button>
@@ -65,23 +87,19 @@ export function CatalogList() {
                 />
             </div>
 
-            {/* Grid cards */}
+            {/* List Format (1 column) */}
             {filteredItems.length > 0 ? (
-                <div className="ct-grid">
+                <div className="ct-list">
                     {filteredItems.map((item, i) => (
-                        <div
-                            key={item.id}
-                            className="ct-card animate-slide-up"
-                            style={{ animationDelay: `${i * 0.04}s` }}
-                        >
-                            <div className="ct-card-top">
-                                <div className="ct-card-icon">
+                        <div key={item.id} className="ct-row animate-slide-up" style={{ animationDelay: `${i * 0.04}s` }}>
+                            <div className="ct-row-left">
+                                <div className="ct-row-icon">
                                     <Package size={20} />
                                 </div>
-                                <div className="ct-card-info">
-                                    <h3 className="ct-card-name">{item.name}</h3>
-                                    {item.description && <p className="ct-card-desc">{item.description}</p>}
-                                    <span className={`ct-card-mode ${item.billing_mode === 'subscription' ? 'ct-mode-sub' : 'ct-mode-unit'}`}>
+                                <div className="ct-row-info">
+                                    <h3 className="ct-row-name">{item.name}</h3>
+                                    {item.description && <p className="ct-row-desc">{item.description}</p>}
+                                    <span className={`ct-row-mode ${item.billing_mode === 'subscription' ? 'ct-mode-sub' : 'ct-mode-unit'}`}>
                                         {item.billing_mode === 'subscription' ? (
                                             <>
                                                 {item.subscription_type === 'fixed' && item.start_date && item.end_date ? (
@@ -96,23 +114,24 @@ export function CatalogList() {
                                     </span>
                                 </div>
                             </div>
-                            <div className="ct-card-bottom">
-                                <div className="ct-card-meta">
-                                    <div className="ct-card-price">{item.unit_price}€</div>
-                                    <div className="ct-card-unit">
+                            <div className="ct-row-right">
+                                <div className="ct-row-meta">
+                                    <div className="ct-row-price">{item.unit_price}€</div>
+                                    <div className="ct-row-unit">
                                         {item.billing_mode === 'subscription'
                                             ? (item.billing_frequency === 'yearly' ? '/ an' : '/ mois')
                                             : `/ ${item.unit || 'pièce'}`
                                         }
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => handleDelete(item.id)}
-                                    className="ct-card-delete"
-                                    title="Supprimer"
-                                >
-                                    <Trash2 size={15} />
-                                </button>
+                                <div className="ct-row-actions">
+                                    <button onClick={() => handleEdit(item)} className="ct-btn-action ct-btn-edit" title="Modifier">
+                                        <Edit2 size={15} />
+                                    </button>
+                                    <button onClick={() => handleDelete(item.id)} className="ct-btn-action ct-btn-delete" title="Supprimer">
+                                        <Trash2 size={15} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -122,7 +141,7 @@ export function CatalogList() {
                     <div className="ct-empty-icon"><Package size={32} /></div>
                     <h3>Catalogue vide</h3>
                     <p>Ajoutez vos premières prestations</p>
-                    <button onClick={() => setIsNewDrawerOpen(true)} className="ct-cta" style={{ marginTop: '1rem', border: 'none', cursor: 'pointer' }}>
+                    <button onClick={handleOpenNew} className="ct-cta" style={{ marginTop: '1rem', border: 'none', cursor: 'pointer' }}>
                         <Plus size={18} /> Nouvelle Prestation
                     </button>
                 </div>
@@ -164,60 +183,69 @@ const ctStyles = `
         background: var(--bg-card) !important;
     }
 
-    .ct-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1rem;
+    .ct-list {
+        display: flex; flex-direction: column; gap: 0.75rem;
     }
 
-    .ct-card {
+    .ct-row {
         background: var(--bg-card); border: 1px solid var(--border);
-        border-radius: var(--radius-xl); padding: 1.25rem;
+        border-radius: var(--radius-xl); padding: 1rem 1.25rem;
         transition: all var(--transition-smooth);
-        display: flex; flex-direction: column; justify-content: space-between;
+        display: flex; justify-content: space-between; align-items: center;
+        gap: 1.5rem;
     }
-    .ct-card:hover {
+    .ct-row:hover {
         border-color: var(--border-light);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        transform: translateY(-1px);
     }
-    .ct-card-top {
-        display: flex; gap: 0.875rem; margin-bottom: 1rem;
+    
+    .ct-row-left {
+        display: flex; gap: 1rem; flex: 1; align-items: center;
     }
-    .ct-card-icon {
+    .ct-row-icon {
         width: 44px; height: 44px; flex-shrink: 0;
         border-radius: var(--radius-lg);
         background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(59,130,246,0.1));
         color: var(--primary);
         display: flex; align-items: center; justify-content: center;
     }
-    .ct-card-name { font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
-    .ct-card-desc {
-        font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;
-        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    .ct-row-info { display: flex; flex-direction: column; }
+    .ct-row-name { font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .ct-row-desc {
+        font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;
+        display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
     }
-    .ct-card-mode {
+    .ct-row-mode {
         display: inline-flex; align-items: center; gap: 0.25rem;
         font-size: 0.625rem; font-weight: 600; text-transform: uppercase;
         letter-spacing: 0.04em; padding: 0.2rem 0.5rem;
-        border-radius: 999px; margin-top: 0.375rem; width: fit-content;
+        border-radius: 999px; margin-top: 0.5rem; width: fit-content;
     }
     .ct-mode-sub { background: rgba(59,130,246,0.1); color: #3b82f6; }
     .ct-mode-unit { background: var(--bg-surface-hover); color: var(--text-muted); }
-    .ct-card-bottom {
-        display: flex; justify-content: space-between; align-items: center;
-        padding-top: 0.875rem; border-top: 1px solid var(--border);
+
+    .ct-row-right {
+        display: flex; align-items: center; gap: 2rem;
     }
-    .ct-card-meta { display: flex; align-items: baseline; gap: 0.25rem; }
-    .ct-card-price { font-size: 1.125rem; font-weight: 700; color: var(--primary); }
-    .ct-card-unit { font-size: 0.75rem; color: var(--text-muted); }
-    .ct-card-delete {
+    .ct-row-meta { 
+        display: flex; flex-direction: column; align-items: flex-end; 
+        min-width: 90px;
+    }
+    .ct-row-price { font-size: 1.125rem; font-weight: 700; color: var(--primary); }
+    .ct-row-unit { font-size: 0.75rem; color: var(--text-muted); }
+    
+    .ct-row-actions {
+        display: flex; gap: 0.375rem;
+    }
+    .ct-btn-action {
         width: 32px; height: 32px;
         display: flex; align-items: center; justify-content: center;
-        border-radius: var(--radius-md); border: none; background: transparent;
+        border-radius: var(--radius-md); border: 1px solid transparent; background: transparent;
         color: var(--text-muted); cursor: pointer; transition: all var(--transition-fast);
     }
-    .ct-card-delete:hover { background: rgba(239,68,68,0.1); color: var(--danger); }
+    .ct-btn-edit:hover { background: rgba(139,92,246,0.1); color: var(--primary); border-color: rgba(139,92,246,0.2); }
+    .ct-btn-delete:hover { background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); }
 
     .ct-empty {
         text-align: center; padding: 4rem 2rem;
@@ -247,8 +275,9 @@ const ctStyles = `
         .ct-header { flex-direction: column; align-items: stretch; }
         .ct-title { font-size: 1.375rem; }
         .ct-cta { justify-content: center; text-align: center; }
-        .ct-grid { grid-template-columns: 1fr; }
-        .ct-card:hover { transform: none; }
-        .ct-card-bottom { flex-wrap: wrap; }
+        
+        .ct-row { flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.25rem; }
+        .ct-row-right { width: 100%; justify-content: space-between; padding-top: 1rem; border-top: 1px solid var(--border); }
+        .ct-row-meta { align-items: flex-start; }
     }
 `;
