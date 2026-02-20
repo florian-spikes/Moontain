@@ -14,11 +14,15 @@ export function useGeneratePdf() {
             let number = doc.number;
             if (!number) {
                 const prefix = doc.type === 'invoice' ? 'F' : 'D';
+                const yearSuffix = new Date().getFullYear().toString().slice(-2);
+
                 const { count } = await supabase
                     .from('documents')
                     .select('*', { count: 'exact', head: true })
                     .eq('type', doc.type);
-                number = `${prefix}${String((count || 0) + 1).padStart(6, '0')}`;
+
+                number = `${prefix}${yearSuffix}-${String((count || 0) + 1).padStart(4, '0')}`;
+
                 await supabase
                     .from('documents')
                     .update({ number, seq_number: (count || 0) + 1 })
