@@ -60,6 +60,7 @@ export function useDocuments() {
             if (newDoc.lines.length > 0) {
                 const lines = newDoc.lines.map(line => ({
                     document_id: doc.id,
+                    name: line.name,
                     description: line.description,
                     quantity: line.quantity,
                     unit_price: line.unit_price,
@@ -195,7 +196,7 @@ export function useDocuments() {
             id: string;
             date?: string;
             due_date?: string;
-            lines?: { description: string; quantity: number; unit_price: number; catalog_item_id?: string | null }[];
+            lines?: { name: string; description: string; quantity: number; unit_price: number; catalog_item_id?: string | null }[];
         }) => {
             const updates: any = {};
             if (date) updates.date = date;
@@ -212,6 +213,7 @@ export function useDocuments() {
                 const { error: linesErr } = await supabase.from('document_lines').insert(
                     lines.map(l => ({
                         document_id: id,
+                        name: l.name,
                         description: l.description,
                         quantity: l.quantity,
                         unit_price: l.unit_price,

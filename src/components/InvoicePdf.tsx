@@ -52,6 +52,7 @@ export interface InvoiceData {
         address?: string;
     };
     lines: {
+        name: string;
         description: string;
         unit_price: number;
         quantity: number;
@@ -161,7 +162,9 @@ const s = StyleSheet.create({
         paddingVertical: 1.5 * MM,
         fontFamily: 'SpaceMono',
     },
-    colDesc: { width: '55%', borderRightWidth: 1, borderRightColor: BLACK },
+    colDesc: { width: '55%', borderRightWidth: 1, borderRightColor: BLACK, paddingVertical: 2 * MM },
+    colDescName: { fontFamily: 'PPMori', fontWeight: 'bold', fontSize: 8, marginBottom: 1 * MM },
+    colDescText: { fontSize: 7, color: GREY },
     colPrix: { width: '15%', borderRightWidth: 1, borderRightColor: BLACK, textAlign: 'right' },
     colQts: { width: '12%', borderRightWidth: 1, borderRightColor: BLACK, textAlign: 'center' },
     colTotal: { width: '18%', textAlign: 'right' },
@@ -319,7 +322,10 @@ export const InvoicePdf: React.FC<{ data: InvoiceData; logoUrl?: string }> = ({ 
                     {/* Rows */}
                     {data.lines?.map((line, i) => (
                         <View style={s.tableRow} key={i}>
-                            <Text style={[s.tableCell, s.colDesc]}>{line.description}</Text>
+                            <View style={[s.tableCell, s.colDesc]}>
+                                <Text style={s.colDescName}>{line.name}</Text>
+                                {line.description && <Text style={s.colDescText}>{line.description}</Text>}
+                            </View>
                             <Text style={[s.tableCell, s.colPrix]}>{Number(line.unit_price).toFixed(0)}€</Text>
                             <Text style={[s.tableCell, s.colQts]}>{line.quantity}</Text>
                             <Text style={[s.tableCell, s.colTotal]}>

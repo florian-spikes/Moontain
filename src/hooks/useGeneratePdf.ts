@@ -36,6 +36,7 @@ export function useGeneratePdf() {
                     address: (doc as any).client?.address || '',
                 },
                 lines: (doc.lines || []).map((l: any) => ({
+                    name: l.name || '',
                     description: l.description,
                     unit_price: l.unit_price,
                     quantity: l.quantity,

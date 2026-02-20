@@ -33,7 +33,7 @@ export function DocumentDetail() {
     const { data: doc, isLoading, error } = getDocument(id!);
     const { data: emailLogs = [] } = getEmailLogs(id!);
     const [isEditing, setIsEditing] = useState(false);
-    const [editLines, setEditLines] = useState<{ description: string; quantity: number; unit_price: number }[]>([]);
+    const [editLines, setEditLines] = useState<{ name: string; description: string; quantity: number; unit_price: number }[]>([]);
     const [isEmailDrawerOpen, setIsEmailDrawerOpen] = useState(false);
     const { setPageBreadcrumb } = useOutletContext<{ setPageBreadcrumb: (b: React.ReactNode) => void }>();
 
@@ -96,7 +96,7 @@ export function DocumentDetail() {
     const isSendingEmail = sendEmail.isPending;
 
     const startEditing = () => {
-        setEditLines((doc.lines || []).map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price })));
+        setEditLines((doc.lines || []).map(l => ({ name: l.name || '', description: l.description, quantity: l.quantity, unit_price: l.unit_price })));
         setIsEditing(true);
     };
     const cancelEditing = () => setIsEditing(false);
@@ -246,7 +246,9 @@ export function DocumentDetail() {
                                     {editLines.map((line, i) => (
                                         <tr key={i} className="dd-tr">
                                             <td className="dd-td">
-                                                <input className="dd-edit-input" value={line.description}
+                                                <input className="dd-edit-input" value={line.name} placeholder="Titre" style={{ fontWeight: 600, marginBottom: '0.25rem' }}
+                                                    onChange={e => { const n = [...editLines]; n[i] = { ...n[i], name: e.target.value }; setEditLines(n); }} />
+                                                <textarea className="dd-edit-input" value={line.description || ''} placeholder="Description" rows={2} style={{ resize: 'vertical' }}
                                                     onChange={e => { const n = [...editLines]; n[i] = { ...n[i], description: e.target.value }; setEditLines(n); }} />
                                             </td>
                                             <td className="dd-td dd-td-right">
@@ -267,7 +269,7 @@ export function DocumentDetail() {
                                     ))}
                                 </tbody>
                             </table>
-                            <button className="dd-add-line" onClick={() => setEditLines([...editLines, { description: '', quantity: 1, unit_price: 0 }])}>
+                            <button className="dd-add-line" onClick={() => setEditLines([...editLines, { name: '', description: '', quantity: 1, unit_price: 0 }])}>
                                 <Plus size={14} /> Ajouter une ligne
                             </button>
                             <div className="dd-total-bar">
@@ -290,7 +292,10 @@ export function DocumentDetail() {
                                     <tbody>
                                         {doc.lines?.map((line) => (
                                             <tr key={line.id} className="dd-tr">
-                                                <td className="dd-td">{line.description}</td>
+                                                <td className="dd-td">
+                                                    <div style={{ fontWeight: 600 }}>{line.name}</div>
+                                                    {line.description && <div style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{line.description}</div>}
+                                                </td>
                                                 <td className="dd-td dd-td-right">{line.quantity}</td>
                                                 <td className="dd-td dd-td-right">{line.unit_price}€</td>
                                                 <td className="dd-td dd-td-right dd-td-bold">{(line.quantity * line.unit_price).toFixed(2)}€</td>

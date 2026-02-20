@@ -17,6 +17,7 @@ type FormData = {
     due_date: string;
     lines: {
         catalog_item_id?: string;
+        name: string;
         description: string;
         quantity: number;
         unit_price: number;
@@ -57,12 +58,18 @@ function SortableLine({ id, index, register, remove, watchLines }: SortableLineP
             </div>
             <div className="docd-line-content">
                 <div className="docd-line-desc">
-                    <label className="docd-label-sm">Description</label>
+                    <label className="docd-label-sm">Prestation</label>
+                    <input
+                        {...register(`lines.${index}.name` as const, { required: true })}
+                        className="docd-input"
+                        placeholder="Titre de la prestation"
+                        style={{ marginBottom: '0.5rem', fontWeight: 600 }}
+                    />
                     <textarea
-                        {...register(`lines.${index}.description` as const, { required: true })}
+                        {...register(`lines.${index}.description` as const)}
                         rows={2}
                         className="docd-input docd-textarea"
-                        placeholder="Description de la prestation"
+                        placeholder="Description (optionnelle)"
                     />
                 </div>
                 <div className="docd-line-nums">
@@ -108,7 +115,7 @@ export function DocumentDrawer({ isOpen, onClose, initialClientId, onSave, isSav
             type: 'invoice',
             date: format(new Date(), 'yyyy-MM-dd'),
             due_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
-            lines: [{ description: '', quantity: 1, unit_price: 0 }]
+            lines: [{ name: '', description: '', quantity: 1, unit_price: 0 }]
         }
     });
 
@@ -125,7 +132,7 @@ export function DocumentDrawer({ isOpen, onClose, initialClientId, onSave, isSav
             setValue('type', 'invoice');
             setValue('date', format(new Date(), 'yyyy-MM-dd'));
             setValue('due_date', format(addDays(new Date(), 30), 'yyyy-MM-dd'));
-            setValue('lines', [{ description: '', quantity: 1, unit_price: 0 }]);
+            setValue('lines', [{ name: '', description: '', quantity: 1, unit_price: 0 }]);
         }
     }, [isOpen, initialClientId, setValue]);
 
@@ -159,13 +166,14 @@ export function DocumentDrawer({ isOpen, onClose, initialClientId, onSave, isSav
             if (item) {
                 append({
                     catalog_item_id: item.id,
-                    description: item.name + (item.description ? `\n${item.description}` : ''),
+                    name: item.name,
+                    description: item.description || '',
                     quantity: 1,
                     unit_price: item.unit_price
                 });
             }
         } else {
-            append({ description: '', quantity: 1, unit_price: 0 });
+            append({ name: '', description: '', quantity: 1, unit_price: 0 });
         }
         setIsCatalogOpen(false);
     };

@@ -58,6 +58,7 @@ export type DocumentType = 'quote' | 'invoice';
 export interface DocumentLine {
     id: string;
     document_id: string;
+    name: string;
     description: string;
     quantity: number;
     unit_price: number;
@@ -88,6 +89,7 @@ export interface NewDocument {
     date: string;
     due_date: string;
     lines: {
+        name: string;
         description: string;
         quantity: number;
         unit_price: number;
