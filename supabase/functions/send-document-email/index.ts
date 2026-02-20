@@ -30,7 +30,7 @@ serve(async (req) => {
         // 1. Fetch Data
         const { data: doc, error: docError } = await supabaseClient
             .from('documents')
-            .select('*, client:clients(email, name)')
+            .select('*, client:clients(email, name, manager_civility, manager_first_name, manager_last_name)')
             .eq('id', document_id)
             .single();
 
@@ -38,17 +38,30 @@ serve(async (req) => {
         if (!doc.client?.email && !to) throw new Error('Client has no email');
         if (!doc.public_url) throw new Error('Document PDF not generated');
 
+        // Format Date
+        let formattedDate = '';
+        if (doc.date) {
+            const [year, month, day] = doc.date.split('-');
+            formattedDate = `${day}/${month}/${year}`;
+        }
+
+        // Enhance doc object with formatted properties
+        const docForTemplate = {
+            ...doc,
+            formattedDate
+        };
+
         // 2. Prepare Email HTML
-        const html = getEmailHtml(type, doc);
+        const html = getEmailHtml(type, docForTemplate);
 
         let subject = '';
         const docLabel = doc.number || 'Brouillon';
 
         switch (type) {
-            case 'quote': subject = `Votre devis ${docLabel} de Moontain`; break;
-            case 'invoice': subject = `Votre facture ${docLabel} de Moontain`; break;
-            case 'reminder': subject = `Rappel : Facture ${docLabel} en attente`; break;
-            case 'resend': subject = `Copie : ${doc.type === 'quote' ? 'Devis' : 'Facture'} ${docLabel}`; break;
+            case 'quote': subject = `Votre devis Moontain.studio ${docLabel} du ${formattedDate} est disponible`; break;
+            case 'invoice': subject = `Votre facture Moontain.studio ${docLabel} du ${formattedDate} est disponible`; break;
+            case 'reminder': subject = `Rappel : Votre facture Moontain.studio ${docLabel} du ${formattedDate} est en attente`; break;
+            case 'resend': subject = `Copie : ${doc.type === 'quote' ? 'Devis' : 'Facture'} Moontain.studio ${docLabel}`; break;
         }
 
         const recipients = to || [doc.client.email];

@@ -1,47 +1,64 @@
 
 export const getEmailHtml = (
-    type: string,
-    doc: { number: string; total_amount: number; public_url: string; client: { name: string } }
+  type: string,
+  doc: { number: string; formattedDate: string; total_amount: number; public_url: string; client: { name: string, manager_civility?: string, manager_first_name?: string, manager_last_name?: string } }
 ) => {
-    const amount = doc.total_amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
-    const docLabel = doc.number || 'Brouillon';
+  const amount = doc.total_amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+  const docLabel = doc.number || 'Brouillon';
+  const dateLabel = doc.formattedDate || '—';
 
-    // Content based on type
-    let title = '';
-    let message = '';
-    let buttonLabel = 'Télécharger le document';
+  // Construct greeting
+  let greeting = `Bonjour ${doc.client.name},`;
+  if (doc.client.manager_civility && doc.client.manager_last_name) {
+    greeting = `Chère Madame ${doc.client.manager_last_name},`;
+    if (doc.client.manager_civility === 'Monsieur') {
+      greeting = `Cher Monsieur ${doc.client.manager_last_name},`;
+    }
+  }
 
-    switch (type) {
-        case 'quote':
-            title = `Votre devis ${docLabel}`;
-            message = `<p>Bonjour ${doc.client.name},</p>
-        <p>Veuillez trouver ci-joint votre devis d'un montant de <strong>${amount}</strong>.</p>
+  // Content based on type
+  let title = '';
+  let message = '';
+  let buttonLabel = 'Télécharger le document';
+
+  switch (type) {
+    case 'quote':
+      title = `Votre devis Moontain.studio ${docLabel} du ${dateLabel} est disponible`;
+      message = `<p>${greeting}</p>
+        <p>Vous trouverez ci-joint votre devis <strong>${docLabel}</strong> du ${dateLabel} sous forme de fichier PDF.</p>
+        <br>
+        <p>Numéro de devis :<br><strong>${docLabel}</strong></p>
+        <br>
+        <p>Montant du devis :<br><strong>${amount}</strong></p>
         <p>Nous restons à votre disposition pour toute question.</p>`;
-            buttonLabel = 'Voir le devis';
-            break;
-        case 'invoice':
-            title = `Votre facture ${docLabel}`;
-            message = `<p>Bonjour ${doc.client.name},</p>
-        <p>Veuillez trouver ci-joint votre facture d'un montant de <strong>${amount}</strong>.</p>
-        <p>Merci de votre confiance.</p>`;
-            buttonLabel = 'Voir la facture';
-            break;
-        case 'reminder':
-            title = `Rappel : Facture ${docLabel}`;
-            message = `<p>Bonjour ${doc.client.name},</p>
+      buttonLabel = 'Voir le devis';
+      break;
+    case 'invoice':
+      title = `Votre facture Moontain.studio ${docLabel} du ${dateLabel} est disponible`;
+      message = `<p>${greeting}</p>
+        <p>Vous trouverez ci-joint votre facture <strong>${docLabel}</strong> du ${dateLabel} sous forme de fichier PDF.</p>
+        <br>
+        <p>Numéro de facture :<br><strong>${docLabel}</strong></p>
+        <br>
+        <p>Montant de la facture :<br><strong>${amount}</strong></p>`;
+      buttonLabel = 'Voir la facture';
+      break;
+    case 'reminder':
+      title = `Rappel : Facture ${docLabel}`;
+      message = `<p>${greeting}</p>
         <p>Sauf erreur de notre part, la facture <strong>${docLabel}</strong> d'un montant de <strong>${amount}</strong> est en attente de règlement.</p>
         <p>Merci de procéder au paiement dès que possible.</p>`;
-            buttonLabel = 'Voir la facture';
-            break;
-        case 'resend':
-            title = `Copie du document ${docLabel}`;
-            message = `<p>Bonjour ${doc.client.name},</p>
+      buttonLabel = 'Voir la facture';
+      break;
+    case 'resend':
+      title = `Copie du document ${docLabel}`;
+      message = `<p>${greeting}</p>
         <p>Comme demandé, voici une copie de votre document.</p>`;
-            break;
-    }
+      break;
+  }
 
-    // HTML Template
-    return `
+  // HTML Template
+  return `
 <!DOCTYPE html>
 <html>
 <head>

@@ -9,6 +9,9 @@ import {
     Hash, Briefcase, Mail
 } from 'lucide-react';
 import type { Client, Document, Service, DocumentStatus } from '../../types';
+import { useState } from 'react';
+import { ClientDrawer } from '../../components/ClientDrawer';
+import { useClients } from '../../hooks/useClients';
 
 const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: string; icon: any }> = {
     draft: { label: 'Brouillon', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', icon: FileText },
@@ -20,6 +23,8 @@ const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: s
 
 export function ClientDetail() {
     const { id } = useParams<{ id: string }>();
+    const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+    const { updateClient } = useClients();
 
     const { data: client, isLoading: clientLoading } = useQuery({
         queryKey: ['client', id],
@@ -97,9 +102,9 @@ export function ClientDetail() {
                     </div>
                 </div>
                 <div className="cd-header-actions">
-                    <Link to={`/clients/${id}`} className="cd-btn cd-btn-secondary">
+                    <button onClick={() => setIsEditDrawerOpen(true)} className="cd-btn cd-btn-secondary">
                         <Edit2 size={15} /> Modifier
-                    </Link>
+                    </button>
                 </div>
             </div>
 
@@ -201,6 +206,16 @@ export function ClientDetail() {
                     </div>
                 )}
             </div>
+
+            <ClientDrawer
+                isOpen={isEditDrawerOpen}
+                onClose={() => setIsEditDrawerOpen(false)}
+                client={client}
+                onSave={async (data) => {
+                    await updateClient.mutateAsync({ id: client.id, ...data });
+                }}
+                isSaving={updateClient.isPending || (updateClient as any).isLoading}
+            />
 
             <style>{cdStyles}</style>
         </div>

@@ -1,4 +1,3 @@
-
 export interface Client {
     id: string;
     created_at: string;
@@ -8,6 +7,9 @@ export interface Client {
     address: string | null;
     notes: string | null;
     emoji: string | null;
+    manager_civility: string | null;
+    manager_first_name: string | null;
+    manager_last_name: string | null;
     is_archived: boolean;
 }
 
