@@ -49,9 +49,11 @@ serve(async (req) => {
                     // Check if already sent today to avoid double send if cron runs multiple times
                     // (Optional but good practice)
 
+                    const reminderType = diffDays < 0 ? `auto_reminder_J${diffDays}` : `auto_reminder_J+${diffDays}`;
+
                     // Call send-document-email
                     const { error } = await supabaseClient.functions.invoke('send-document-email', {
-                        body: { document_id: doc.id, type: 'reminder' }
+                        body: { document_id: doc.id, type: reminderType }
                     });
 
                     if (error) results.errors.push(`Failed to remind invoice ${doc.id}: ${error.message}`);

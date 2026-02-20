@@ -57,11 +57,14 @@ serve(async (req) => {
         let subject = '';
         const docLabel = doc.number || 'Brouillon';
 
-        switch (type) {
-            case 'quote': subject = `Votre devis Moontain.studio ${docLabel} du ${formattedDate} est disponible`; break;
-            case 'invoice': subject = `Votre facture Moontain.studio ${docLabel} du ${formattedDate} est disponible`; break;
-            case 'reminder': subject = `Rappel : Votre facture Moontain.studio ${docLabel} du ${formattedDate} est en attente`; break;
-            case 'resend': subject = `Copie : ${doc.type === 'quote' ? 'Devis' : 'Facture'} Moontain.studio ${docLabel}`; break;
+        if (type.startsWith('auto_reminder') || type === 'reminder') {
+            subject = `Rappel : Votre facture Moontain.studio ${docLabel} du ${formattedDate} est en attente`;
+        } else {
+            switch (type) {
+                case 'quote': subject = `Votre devis Moontain.studio ${docLabel} du ${formattedDate} est disponible`; break;
+                case 'invoice': subject = `Votre facture Moontain.studio ${docLabel} du ${formattedDate} est disponible`; break;
+                case 'resend': subject = `Copie : ${doc.type === 'quote' ? 'Devis' : 'Facture'} Moontain.studio ${docLabel}`; break;
+            }
         }
 
         const recipients = to || [doc.client.email];

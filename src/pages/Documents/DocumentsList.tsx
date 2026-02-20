@@ -1,14 +1,12 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, FileText, CheckCircle, AlertCircle, Send, Receipt } from 'lucide-react';
 import { useDocuments } from '../../hooks/useDocuments';
 import { format, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { clsx } from 'clsx';
 import { DocumentDrawer } from '../../components/DocumentDrawer';
 import { useNavigate } from 'react-router-dom';
-import type { DocumentStatus } from '../../types';
+import type { DocumentStatus, DocumentType } from '../../types';
 
 const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: string; icon: any }> = {
     draft: { label: 'Brouillon', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', icon: FileText },
@@ -21,7 +19,7 @@ const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: s
 
 export function DocumentsList() {
     const { documents, isLoading, error, createDocument } = useDocuments();
-    const [filterStatus, setFilterStatus] = useState<DocumentStatus | 'all'>('all');
+    const [activeTab, setActiveTab] = useState<DocumentType>('invoice');
     const [searchTerm, setSearchTerm] = useState('');
     const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
     const navigate = useNavigate();
@@ -36,19 +34,29 @@ export function DocumentsList() {
     if (error) return <div className="dl-loading" style={{ color: 'var(--danger)' }}>Erreur: {(error as Error).message}</div>;
 
     const filteredDocs = documents
-        .filter(doc => filterStatus === 'all' || doc.status === filterStatus)
+        .filter(doc => doc.type === activeTab)
         .filter(doc =>
             doc.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             doc.number?.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
-    // Stats
-    const stats = {
-        total: documents.length,
-        drafts: documents.filter(d => d.status === 'draft').length,
-        sent: documents.filter(d => d.status === 'sent').length,
-        paid: documents.filter(d => d.status === 'paid').length,
-    };
+    // Grouping for Kanban
+    const invoiceColumns: DocumentStatus[] = ['draft', 'sent', 'overdue', 'paid'];
+    const quoteColumns: DocumentStatus[] = ['draft', 'sent', 'accepted'];
+
+    const columns = activeTab === 'invoice' ? invoiceColumns : quoteColumns;
+
+    const docsByStatus = columns.reduce((acc, status) => {
+        acc[status] = filteredDocs.filter(d => d.status === status);
+        return acc;
+    }, {} as Record<DocumentStatus, typeof documents>);
+
+    // Also include 'cancelled' if there are any, generally at the end or hidden. For this Kanban we just append it if not empty
+    const cancelledDocs = filteredDocs.filter(d => d.status === 'cancelled');
+    if (cancelledDocs.length > 0) {
+        columns.push('cancelled');
+        docsByStatus['cancelled'] = cancelledDocs;
+    }
 
     return (
         <div className="dl animate-fade-in">
@@ -66,7 +74,7 @@ export function DocumentsList() {
             <div className="dl-header">
                 <div>
                     <h1 className="dl-title">Documents</h1>
-                    <p className="dl-subtitle">Devis et factures · {filteredDocs.length} résultat{filteredDocs.length > 1 ? 's' : ''}</p>
+                    <p className="dl-subtitle">Vue globale de facturation · {filteredDocs.length} {activeTab === 'quote' ? 'devis' : 'factures'}</p>
                 </div>
                 <button onClick={() => setIsNewDrawerOpen(true)} className="dl-cta" style={{ border: 'none', cursor: 'pointer' }}>
                     <Plus size={18} />
@@ -74,105 +82,83 @@ export function DocumentsList() {
                 </button>
             </div>
 
-            {/* Mini stats */}
-            <div className="dl-stats">
-                <div className="dl-stat">
-                    <span className="dl-stat-val">{stats.total}</span>
-                    <span className="dl-stat-label">Total</span>
-                </div>
-                <div className="dl-stat">
-                    <span className="dl-stat-val" style={{ color: statusConfig.draft.color }}>{stats.drafts}</span>
-                    <span className="dl-stat-label">Brouillons</span>
-                </div>
-                <div className="dl-stat">
-                    <span className="dl-stat-val" style={{ color: statusConfig.sent.color }}>{stats.sent}</span>
-                    <span className="dl-stat-label">Envoyés</span>
-                </div>
-                <div className="dl-stat">
-                    <span className="dl-stat-val" style={{ color: statusConfig.paid.color }}>{stats.paid}</span>
-                    <span className="dl-stat-label">Payés</span>
-                </div>
-            </div>
-
-            {/* Toolbar */}
+            {/* Tabs & Toolbar */}
             <div className="dl-toolbar">
                 <div className="dl-search-wrap">
                     <Search className="dl-search-icon" size={18} />
                     <input
                         type="text"
-                        placeholder="Rechercher par client ou numéro..."
+                        placeholder={`Rechercher un client ou un numéro...`}
                         className="dl-search-input"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="dl-filters">
+                <div className="dl-tabs">
                     <button
-                        onClick={() => setFilterStatus('all')}
-                        className={clsx('dl-filter-btn', filterStatus === 'all' && 'dl-filter-active')}
+                        onClick={() => setActiveTab('invoice')}
+                        className={clsx('dl-tab-btn', activeTab === 'invoice' && 'dl-tab-active')}
                     >
-                        Tous
+                        <Receipt size={16} /> Factures
                     </button>
-                    {(Object.keys(statusConfig) as DocumentStatus[]).map((status) => (
-                        <button
-                            key={status}
-                            onClick={() => setFilterStatus(status)}
-                            className={clsx('dl-filter-btn', filterStatus === status && 'dl-filter-active')}
-                        >
-                            {statusConfig[status].label}
-                        </button>
-                    ))}
+                    <button
+                        onClick={() => setActiveTab('quote')}
+                        className={clsx('dl-tab-btn', activeTab === 'quote' && 'dl-tab-active')}
+                    >
+                        <FileText size={16} /> Devis
+                    </button>
                 </div>
             </div>
 
-            {/* List */}
-            {filteredDocs.length > 0 ? (
-                <div className="dl-list">
-                    {filteredDocs.map((doc, i) => {
-                        const StatusIcon = statusConfig[doc.status].icon;
-                        const conf = statusConfig[doc.status];
-                        return (
-                            <Link
-                                to={`/documents/${doc.id}`}
-                                key={doc.id}
-                                className="dl-row animate-slide-up"
-                                style={{ animationDelay: `${i * 0.03}s`, textDecoration: 'none' }}
-                            >
-                                <div className="dl-row-left">
-                                    <div className="dl-row-icon" style={{ background: conf.bg, color: conf.color }}>
-                                        {doc.type === 'quote' ? <FileText size={18} /> : <Receipt size={18} />}
-                                    </div>
-                                    <div className="dl-row-info">
-                                        <div className="dl-row-number">
-                                            {doc.number || 'Brouillon'}
-                                            <span className="dl-row-type">{doc.type === 'quote' ? 'Devis' : 'Facture'}</span>
+            {/* Kanban Board */}
+            <div className="dl-kanban">
+                {columns.map(status => {
+                    const colDocs = docsByStatus[status] || [];
+                    const conf = statusConfig[status];
+                    const StatusIcon = conf.icon;
+                    return (
+                        <div key={status} className="dl-k-col">
+                            <div className="dl-k-col-head">
+                                <div className="dl-k-col-title" style={{ color: conf.color }}>
+                                    <StatusIcon size={14} />
+                                    <span>{conf.label}</span>
+                                </div>
+                                <div className="dl-k-col-count">{colDocs.length}</div>
+                            </div>
+                            <div className="dl-k-col-body">
+                                {colDocs.map((doc, i) => (
+                                    <Link
+                                        to={`/documents/${doc.id}`}
+                                        key={doc.id}
+                                        className="dl-k-card animate-slide-up"
+                                        style={{ animationDelay: `${i * 0.03}s` }}
+                                    >
+                                        <div className="dl-k-card-head">
+                                            <span className="dl-k-num">{doc.number || 'Brouillon'}</span>
+                                            <span className="dl-k-val">{doc.total_amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
                                         </div>
-                                        <div className="dl-row-client">{doc.client?.name || '—'}</div>
-                                    </div>
-                                </div>
-                                <div className="dl-row-right">
-                                    <div className="dl-row-amount">
-                                        {doc.total_amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                                    </div>
-                                    <div className="dl-row-date">
-                                        {doc.date ? format(parseISO(doc.date), 'd MMM yyyy', { locale: fr }) : '—'}
-                                    </div>
-                                    <span className="dl-row-badge" style={{ background: conf.bg, color: conf.color }}>
-                                        <StatusIcon size={12} />
-                                        {conf.label}
-                                    </span>
-                                </div>
-                            </Link>
-                        );
-                    })}
-                </div>
-            ) : (
-                <div className="dl-empty">
-                    <div className="dl-empty-icon"><FileText size={32} /></div>
-                    <h3>Aucun document trouvé</h3>
-                    <p>Créez votre premier devis ou facture</p>
-                </div>
-            )}
+                                        <div className="dl-k-client">{doc.client?.name || '—'}</div>
+                                        <div className="dl-k-date">
+                                            {status === 'draft' ? (
+                                                `Créé le ${doc.date ? format(parseISO(doc.date), 'dd/MM/yyyy') : '—'}`
+                                            ) : doc.due_date && (status === 'sent' || status === 'overdue') ? (
+                                                <span style={{ color: status === 'overdue' ? 'var(--danger)' : 'inherit' }}>
+                                                    Échéance : {format(parseISO(doc.due_date), 'dd/MM/yyyy')}
+                                                </span>
+                                            ) : (
+                                                `${doc.date ? format(parseISO(doc.date), 'dd/MM/yyyy') : '—'}`
+                                            )}
+                                        </div>
+                                    </Link>
+                                ))}
+                                {colDocs.length === 0 && (
+                                    <div className="dl-k-empty">Aucun</div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
 
             <style>{dlStyles}</style>
         </div>
@@ -180,7 +166,7 @@ export function DocumentsList() {
 }
 
 const dlStyles = `
-    .dl { max-width: 1100px; margin: 0 auto; }
+    .dl { max-width: 1400px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; }
 
     .dl-header {
         display: flex;
@@ -210,34 +196,20 @@ const dlStyles = `
         transform: translateY(-1px);
     }
 
-    /* Stats */
-    .dl-stats {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
-    .dl-stat {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 1rem 1.25rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-    .dl-stat-val { font-size: 1.5rem; font-weight: 700; }
-    .dl-stat-label { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-
-    /* Toolbar */
+    /* Toolbar & Tabs */
     .dl-toolbar {
         display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
         margin-bottom: 1.5rem;
+        flex-wrap: wrap;
     }
     .dl-search-wrap {
         position: relative;
+        flex: 1;
+        min-width: 250px;
+        max-width: 400px;
     }
     .dl-search-icon {
         position: absolute;
@@ -252,134 +224,145 @@ const dlStyles = `
         padding-left: 2.75rem !important;
         background: var(--bg-card) !important;
     }
-    .dl-filters {
+    
+    .dl-tabs {
         display: flex;
-        gap: 0.375rem;
-        overflow-x: auto;
-        padding-bottom: 2px;
-    }
-    .dl-filter-btn {
-        padding: 0.375rem 0.875rem;
-        border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 500;
-        white-space: nowrap;
+        background: rgba(0,0,0,0.03);
+        padding: 0.25rem;
+        border-radius: var(--radius-lg);
         border: 1px solid var(--border);
+    }
+    .dl-tab-btn {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: var(--radius-md);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        border: none;
         background: transparent;
         color: var(--text-secondary);
         cursor: pointer;
         transition: all var(--transition-fast);
     }
-    .dl-filter-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .dl-filter-active {
-        background: var(--primary) !important;
-        color: white !important;
-        border-color: var(--primary) !important;
+    .dl-tab-btn:hover { color: var(--text-primary); }
+    .dl-tab-active {
+        background: var(--bg-card);
+        color: var(--primary);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
-    /* List */
-    .dl-list {
+    /* Kanban Board */
+    .dl-kanban {
+        display: flex;
+        gap: 1.25rem;
+        overflow-x: auto;
+        padding-bottom: 1rem;
+        flex: 1;
+        align-items: flex-start;
+        min-height: 500px;
+    }
+    .dl-k-col {
+        flex: 1;
+        min-width: 280px;
+        background: rgba(0,0,0,0.02);
+        border-radius: var(--radius-xl);
+        padding: 1rem;
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        border: 1px dashed transparent;
     }
-    .dl-row {
+    .dl-k-col-head {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 1rem 1.25rem;
-        transition: all var(--transition-smooth);
-        cursor: pointer;
-        flex-wrap: wrap;
-        gap: 1rem;
-        color: inherit;
+        margin-bottom: 1rem;
+        padding: 0 0.5rem;
     }
-    .dl-row:hover {
-        border-color: var(--primary);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-        transform: translateY(-1px);
-    }
-    .dl-row-left {
-        display: flex;
-        align-items: center;
-        gap: 0.875rem;
-    }
-    .dl-row-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: var(--radius-md);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-    .dl-row-number {
-        font-weight: 600;
-        font-size: 0.875rem;
+    .dl-k-col-title {
         display: flex;
         align-items: center;
         gap: 0.5rem;
-    }
-    .dl-row-type {
-        font-size: 0.625rem;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--text-muted);
-        background: var(--bg-surface-hover);
-        padding: 0.125rem 0.5rem;
-        border-radius: 999px;
-        font-weight: 600;
-    }
-    .dl-row-client {
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-    }
-    .dl-row-right {
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-    }
-    .dl-row-amount {
         font-weight: 700;
-        font-size: 0.9375rem;
+        font-size: 0.8125rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
-    .dl-row-date {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        white-space: nowrap;
-    }
-    .dl-row-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 999px;
-        font-size: 0.6875rem;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-
-    /* Empty */
-    .dl-empty {
-        text-align: center;
-        padding: 4rem 2rem;
+    .dl-k-col-count {
         background: var(--bg-card);
         border: 1px solid var(--border);
-        border-radius: var(--radius-xl);
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.125rem 0.5rem;
+        border-radius: 999px;
     }
-    .dl-empty-icon {
-        width: 64px; height: 64px;
-        border-radius: 50%;
-        background: rgba(59,130,246,0.1);
-        color: #3b82f6;
-        display: flex; align-items: center; justify-content: center;
-        margin: 0 auto 1rem;
+    .dl-k-col-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        flex: 1;
     }
-    .dl-empty h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; }
-    .dl-empty p { color: var(--text-secondary); font-size: 0.875rem; }
+    .dl-k-empty {
+        text-align: center;
+        padding: 2rem 1rem;
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        font-style: italic;
+        background: rgba(0,0,0,0.02);
+        border-radius: var(--radius-lg);
+        border: 1px dashed var(--border);
+    }
+
+    /* Kanban Cards */
+    .dl-k-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .dl-k-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(139,92,246,0.1);
+        border-color: var(--primary);
+    }
+    .dl-k-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    .dl-k-num {
+        font-weight: 700;
+        font-size: 0.875rem;
+        color: var(--text-primary);
+    }
+    .dl-k-val {
+        font-weight: 700;
+        font-size: 0.875rem;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .dl-k-client {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+    .dl-k-date {
+        font-size: 0.6875rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
 
     .dl-loading {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -395,16 +378,11 @@ const dlStyles = `
     @keyframes spin { to { transform: rotate(360deg); } }
 
     @media (max-width: 768px) {
-        .dl-stats { grid-template-columns: repeat(2, 1fr); }
         .dl-header { flex-direction: column; align-items: stretch; }
-        .dl-title { font-size: 1.375rem; }
         .dl-cta { justify-content: center; text-align: center; }
-        .dl-row { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
-        .dl-row-right { width: 100%; justify-content: space-between; flex-wrap: wrap; }
-        .dl-row:hover { transform: none; }
-        .dl-filters { flex-wrap: wrap; }
-    }
-    @media (max-width: 480px) {
-        .dl-stats { grid-template-columns: 1fr; }
+        .dl-toolbar { flex-direction: column-reverse; align-items: stretch; }
+        .dl-search-wrap { max-width: 100%; }
+        .dl-tabs { justify-content: stretch; }
+        .dl-tab-btn { flex: 1; justify-content: center; }
     }
 `;

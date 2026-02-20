@@ -328,7 +328,10 @@ export function DocumentDetail() {
                                                 {log.status === 'sent' ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
                                             </span>
                                             <span className="dd-log-type">
-                                                {log.type === 'reminder' ? 'Relance' : log.type === 'resend' ? 'Renvoi' : 'Envoi'}
+                                                {log.type.startsWith('auto_reminder') ? `Relance automatique (${log.type.replace('auto_reminder_', '')})` :
+                                                    log.type === 'reminder' ? 'Relance manuelle' :
+                                                        log.type === 'resend' ? 'Renvoi manuel' :
+                                                            'Envoi initial'}
                                             </span>
                                             <span className="dd-log-date">
                                                 {format(parseISO(log.created_at), 'dd/MM HH:mm')}
