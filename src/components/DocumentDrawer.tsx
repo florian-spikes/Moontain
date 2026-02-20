@@ -27,7 +27,9 @@ type FormData = {
 interface DocumentDrawerProps {
     isOpen: boolean;
     onClose: () => void;
+    document?: FormData; // Assuming Document is similar to FormData for editing
     initialClientId?: string;
+    defaultType?: DocumentType;
     onSave: (data: FormData) => Promise<void>;
     isSaving: boolean;
 }
@@ -104,18 +106,18 @@ function SortableLine({ id, index, register, remove, watchLines }: SortableLineP
     );
 }
 
-export function DocumentDrawer({ isOpen, onClose, initialClientId, onSave, isSaving }: DocumentDrawerProps) {
+export function DocumentDrawer({ isOpen, onClose, document, initialClientId, defaultType, onSave, isSaving }: DocumentDrawerProps) {
     const { clients } = useClients();
     const { catalogItems } = useCatalog();
     const [isCatalogOpen, setIsCatalogOpen] = useState(false);
 
-    const { control, register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
+    const { control, register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<FormData>({
         defaultValues: {
-            client_id: initialClientId || '',
-            type: 'invoice',
-            date: format(new Date(), 'yyyy-MM-dd'),
-            due_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
-            lines: [{ name: '', description: '', quantity: 1, unit_price: 0 }]
+            client_id: document?.client_id || initialClientId || '',
+            type: document?.type || defaultType || 'invoice',
+            date: document?.date || format(new Date(), 'yyyy-MM-dd'),
+            due_date: document?.due_date || format(addDays(new Date(), 30), 'yyyy-MM-dd'),
+            lines: document?.lines && document.lines.length > 0 ? document.lines : [{ name: '', description: '', quantity: 1, unit_price: 0 }]
         }
     });
 
@@ -128,13 +130,15 @@ export function DocumentDrawer({ isOpen, onClose, initialClientId, onSave, isSav
 
     useEffect(() => {
         if (isOpen) {
-            setValue('client_id', initialClientId || '');
-            setValue('type', 'invoice');
-            setValue('date', format(new Date(), 'yyyy-MM-dd'));
-            setValue('due_date', format(addDays(new Date(), 30), 'yyyy-MM-dd'));
-            setValue('lines', [{ name: '', description: '', quantity: 1, unit_price: 0 }]);
+            reset({
+                client_id: document?.client_id || initialClientId || '',
+                type: document?.type || defaultType || 'invoice',
+                date: document?.date || format(new Date(), 'yyyy-MM-dd'),
+                due_date: document?.due_date || format(addDays(new Date(), 30), 'yyyy-MM-dd'),
+                lines: document?.lines && document.lines.length > 0 ? document.lines : [{ name: '', description: '', quantity: 1, unit_price: 0 }],
+            });
         }
-    }, [isOpen, initialClientId, setValue]);
+    }, [isOpen, document, initialClientId, defaultType, reset]);
 
     useEffect(() => {
         if (watchType === 'quote') {

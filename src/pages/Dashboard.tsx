@@ -5,23 +5,17 @@ import {
     Euro, Clock, Calendar, ArrowRight, Plus
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useDashboard } from '../hooks/useDashboard';
+import { useClients } from '../hooks/useClients';
+import { useDocuments } from '../hooks/useDocuments';
+import { DocumentDrawer } from '../components/DocumentDrawer';
+import { ClientDrawer } from '../components/ClientDrawer';
+import { format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import type { NewClient, NewDocument } from '../types';
 
-// ── Mock Data ──────────────────────────────
-const mockStats = {
-    revenue: { current: 12450, growth: 18.5 },
-    pendingInvoices: { count: 4, amount: 5280 },
-    activeClients: 12,
-    activeServices: 8,
-};
-
-const mockRecentDocs = [
-    { id: '1', number: 'FAC-2026-012', type: 'invoice' as const, status: 'paid' as const, client: 'Studio Graphix', amount: 3200, date: '15 fév' },
-    { id: '2', number: 'DEV-2026-008', type: 'quote' as const, status: 'sent' as const, client: 'La Boulangerie Bio', amount: 1800, date: '13 fév' },
-    { id: '3', number: 'FAC-2026-011', type: 'invoice' as const, status: 'overdue' as const, client: 'TechStart SAS', amount: 4500, date: '10 fév' },
-    { id: '4', number: 'FAC-2026-010', type: 'invoice' as const, status: 'paid' as const, client: 'Immobilia', amount: 2100, date: '8 fév' },
-    { id: '5', number: 'DEV-2026-007', type: 'quote' as const, status: 'draft' as const, client: 'FitCoach Pro', amount: 950, date: '5 fév' },
-];
-
+// Remove unused mock data
 const mockActivity = [
     { label: 'Jan', value: 65 },
     { label: 'Fév', value: 82 },
@@ -46,6 +40,44 @@ const fmt = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', curren
 export function Dashboard() {
     const { user } = useAuth();
     const firstName = user?.email?.split('@')[0] ?? 'Utilisateur';
+    const { stats, isLoading } = useDashboard();
+
+    const [isDocDrawerOpen, setIsDocDrawerOpen] = useState(false);
+    const [docDrawerType, setDocDrawerType] = useState<'invoice' | 'quote'>('invoice');
+
+    const [isClientDrawerOpen, setIsClientDrawerOpen] = useState(false);
+
+    const { createClient } = useClients();
+    const { createDocument } = useDocuments();
+
+    const handleSaveClient = async (data: Partial<NewClient>) => {
+        await createClient.mutateAsync({
+            name: data.name!,
+            email: data.email || null,
+            address: data.address || null,
+            notes: data.notes || null,
+            emoji: data.emoji || '🏢',
+            manager_civility: data.manager_civility || null,
+            manager_first_name: data.manager_first_name || null,
+            manager_last_name: data.manager_last_name || null,
+        });
+        setIsClientDrawerOpen(false);
+    };
+
+    const handleSaveDoc = async (data: any) => {
+        await createDocument.mutateAsync({
+            client_id: data.client_id,
+            type: data.type,
+            date: data.date,
+            due_date: data.due_date,
+            lines: data.lines,
+        } as NewDocument);
+        setIsDocDrawerOpen(false);
+    };
+
+    if (isLoading || !stats) {
+        return <div className="dash"><div className="dash-header"><h1 className="dash-title">Chargement...</h1></div></div>;
+    }
 
     return (
         <div className="dash">
@@ -55,26 +87,30 @@ export function Dashboard() {
                     <h1 className="dash-title">Bonjour, {firstName} 👋</h1>
                     <p className="dash-subtitle">Voici un résumé de votre activité ce mois-ci.</p>
                 </div>
-                <Link to="/documents/new" className="dash-cta">
-                    <Plus size={18} /> Nouveau document
-                </Link>
+                <button
+                    onClick={() => { setDocDrawerType('invoice'); setIsDocDrawerOpen(true); }}
+                    className="dash-cta"
+                    style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                    <Plus size={18} /> Nouvelle facture
+                </button>
             </div>
 
             {/* KPI Grid */}
             <div className="dash-kpis animate-slide-up">
                 <KpiCard
                     label="Chiffre d'affaires"
-                    value={fmt(mockStats.revenue.current)}
-                    sub={<><TrendingUp size={14} /> +{mockStats.revenue.growth}% vs mois dernier</>}
-                    subColor="#34d399"
+                    value={fmt(stats.revenue.current)}
+                    sub={<><TrendingUp size={14} /> {stats.revenue.growth >= 0 ? '+' : ''}{stats.revenue.growth.toFixed(1)}% vs mois dernier</>}
+                    subColor={stats.revenue.growth >= 0 ? "#34d399" : "#f87171"}
                     icon={<Euro size={20} />}
                     iconBg="linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15))"
                     iconColor="var(--primary)"
                 />
                 <KpiCard
                     label="Factures en attente"
-                    value={String(mockStats.pendingInvoices.count)}
-                    sub={<>{fmt(mockStats.pendingInvoices.amount)} à recevoir</>}
+                    value={String(stats.pendingInvoices.count)}
+                    sub={<>{fmt(stats.pendingInvoices.amount)} à recevoir</>}
                     subColor="var(--text-secondary)"
                     icon={<Clock size={20} />}
                     iconBg="rgba(245,158,11,0.12)"
@@ -82,7 +118,7 @@ export function Dashboard() {
                 />
                 <KpiCard
                     label="Clients actifs"
-                    value={String(mockStats.activeClients)}
+                    value={String(stats.activeClients)}
                     sub={<Link to="/clients" style={{ color: 'var(--primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8125rem' }}>Voir tous <ArrowRight size={14} /></Link>}
                     icon={<Users size={20} />}
                     iconBg="rgba(139,92,246,0.12)"
@@ -90,7 +126,7 @@ export function Dashboard() {
                 />
                 <KpiCard
                     label="Services actifs"
-                    value={String(mockStats.activeServices)}
+                    value={String(stats.activeServices)}
                     sub={<Link to="/services" style={{ color: 'var(--secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8125rem' }}>Gérer <ArrowRight size={14} /></Link>}
                     icon={<Calendar size={20} />}
                     iconBg="rgba(59,130,246,0.12)"
@@ -125,26 +161,30 @@ export function Dashboard() {
                         <Link to="/documents" style={{ fontSize: '0.8125rem', color: 'var(--primary)', textDecoration: 'none' }}>Tout voir</Link>
                     </div>
                     <div className="dash-doc-list">
-                        {mockRecentDocs.map(doc => (
-                            <div key={doc.id} className="dash-doc-row">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <div className="dash-doc-dot" style={{ background: doc.type === 'invoice' ? 'var(--secondary)' : 'var(--primary)' }} />
-                                    <div>
-                                        <div className="dash-doc-number">{doc.number}</div>
-                                        <div className="dash-doc-client">{doc.client} · {doc.date}</div>
+                        {stats.recentDocs.length === 0 ? (
+                            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Aucun document récent</div>
+                        ) : (
+                            stats.recentDocs.map(doc => (
+                                <Link to={`/documents/${doc.id}`} key={doc.id} className="dash-doc-row" style={{ textDecoration: 'none', color: 'inherit' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <div className="dash-doc-dot" style={{ background: doc.type === 'invoice' ? 'var(--secondary)' : 'var(--primary)' }} />
+                                        <div>
+                                            <div className="dash-doc-number">{doc.number || 'Brouillon'}</div>
+                                            <div className="dash-doc-client">{(doc as any).client?.name || 'Client sans nom'} · {doc.date ? format(parseISO(doc.date), 'dd MMM', { locale: fr }) : '-'}</div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <div className="dash-doc-amount">{fmt(doc.amount)}</div>
-                                    <span className="dash-doc-status" style={{
-                                        background: statusStyles[doc.status]?.bg,
-                                        color: statusStyles[doc.status]?.color,
-                                    }}>
-                                        {statusStyles[doc.status]?.label}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div className="dash-doc-amount">{fmt(doc.total_amount)}</div>
+                                        <span className="dash-doc-status" style={{
+                                            background: statusStyles[doc.status]?.bg,
+                                            color: statusStyles[doc.status]?.color,
+                                        }}>
+                                            {statusStyles[doc.status]?.label}
+                                        </span>
+                                    </div>
+                                </Link>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>
@@ -155,14 +195,14 @@ export function Dashboard() {
                     icon={<FileText size={22} />}
                     label="Nouveau Devis"
                     description="Créer un devis pour un client"
-                    href="/documents/new"
+                    onClick={() => { setDocDrawerType('quote'); setIsDocDrawerOpen(true); }}
                     color="var(--secondary)"
                 />
                 <ActionCard
                     icon={<Users size={22} />}
                     label="Nouveau Client"
                     description="Ajouter un client à votre base"
-                    href="/clients/new"
+                    onClick={() => setIsClientDrawerOpen(true)}
                     color="var(--primary)"
                 />
                 <ActionCard
@@ -173,6 +213,21 @@ export function Dashboard() {
                     color="var(--accent)"
                 />
             </div>
+
+            <DocumentDrawer
+                isOpen={isDocDrawerOpen}
+                onClose={() => setIsDocDrawerOpen(false)}
+                defaultType={docDrawerType}
+                onSave={handleSaveDoc}
+                isSaving={createDocument.isPending}
+            />
+
+            <ClientDrawer
+                isOpen={isClientDrawerOpen}
+                onClose={() => setIsClientDrawerOpen(false)}
+                onSave={handleSaveClient}
+                isSaving={createClient.isPending}
+            />
 
             <style>{dashStyles}</style>
         </div>
@@ -198,11 +253,20 @@ function KpiCard({ label, value, sub, subColor, icon, iconBg, iconColor }: {
     );
 }
 
-function ActionCard({ icon, label, description, href, color }: {
-    icon: React.ReactNode; label: string; description: string; href: string; color: string;
+function ActionCard({ icon, label, description, href, onClick, color }: {
+    icon: React.ReactNode; label: string; description: string; href?: string; onClick?: () => void; color: string;
 }) {
+    if (onClick) {
+        return (
+            <button onClick={onClick} className="action-card" style={{ textDecoration: 'none', border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit', display: 'block', background: 'var(--bg-card)', width: '100%', textAlign: 'center' }}>
+                <div className="action-icon" style={{ background: `${color}15`, color }}>{icon}</div>
+                <div className="action-label">{label}</div>
+                <div className="action-desc">{description}</div>
+            </button>
+        );
+    }
     return (
-        <Link to={href} className="action-card" style={{ textDecoration: 'none' }}>
+        <Link to={href || '#'} className="action-card" style={{ textDecoration: 'none' }}>
             <div className="action-icon" style={{ background: `${color}15`, color }}>{icon}</div>
             <div className="action-label">{label}</div>
             <div className="action-desc">{description}</div>

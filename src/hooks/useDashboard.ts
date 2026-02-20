@@ -44,17 +44,19 @@ export function useDashboard() {
 
             const pendingAmount = pendingData?.reduce((acc, curr) => acc + curr.total_amount, 0) || 0;
 
-            // 4. Expiring Services (Next 30 days)
-            const thirtyDaysFromNow = new Date();
-            thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-            const { count: expiringCount } = await supabase
+            // 4. Expiring Services (Next 30 days) => Replaced by Active Services
+            const { count: activeServicesCount } = await supabase
                 .from('services')
                 .select('*', { count: 'exact', head: true })
-                .gte('renewal_date', now.toISOString())
-                .lte('renewal_date', thirtyDaysFromNow.toISOString());
+                .or(`end_date.is.null,end_date.gte.${now.toISOString()}`);
 
-            // 5. Recent Activity (Last 5 documents)
+            // 5. Active Clients
+            const { count: activeClientsCount } = await supabase
+                .from('clients')
+                .select('*', { count: 'exact', head: true })
+                .eq('is_archived', false);
+
+            // 6. Recent Activity (Last 5 documents)
             const { data: recentDocs } = await supabase
                 .from('documents')
                 .select('id, number, type, status, date, client:clients(name), total_amount')
@@ -71,7 +73,8 @@ export function useDashboard() {
                     count: pendingCount || 0,
                     amount: pendingAmount
                 },
-                expiringServices: expiringCount || 0,
+                activeServices: activeServicesCount || 0,
+                activeClients: activeClientsCount || 0,
                 recentDocs: recentDocs || []
             };
         },
