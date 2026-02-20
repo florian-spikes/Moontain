@@ -33,6 +33,9 @@ export function NewClient() {
                 email: data.email || null,
                 address: data.address || null,
                 notes: data.notes || null,
+                manager_civility: null,
+                manager_first_name: null,
+                manager_last_name: null,
                 emoji,
             });
             navigate('/clients');
