@@ -10,10 +10,11 @@ import { fr } from 'date-fns/locale';
 import {
     ArrowLeft, FileText, Download, Send, CheckCircle,
     AlertCircle, Printer, Mail, Loader2,
-    Edit2, RefreshCw, Plus, Trash2, Save, X
+    Edit2, RefreshCw, Plus, Trash2, Save, X, ChevronRight
 } from 'lucide-react';
 import type { DocumentStatus } from '../../types';
 import { EmailDrawer } from '../../components/EmailDrawer';
+import { useOutletContext } from 'react-router-dom';
 
 const statusConfig: Record<DocumentStatus, { label: string; color: string; bg: string; icon: any }> = {
     draft: { label: 'Brouillon', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', icon: FileText },
@@ -33,6 +34,7 @@ export function DocumentDetail() {
     const [isEditing, setIsEditing] = useState(false);
     const [editLines, setEditLines] = useState<{ description: string; quantity: number; unit_price: number }[]>([]);
     const [isEmailDrawerOpen, setIsEmailDrawerOpen] = useState(false);
+    const { setPageBreadcrumb } = useOutletContext<{ setPageBreadcrumb: (b: React.ReactNode) => void }>();
 
     // Subscribe to Email Logs changes in Realtime
     useEffect(() => {
@@ -72,6 +74,26 @@ export function DocumentDetail() {
     const isGeneratingPdf = generatePdf.isPending;
     const isSendingEmail = sendEmail.isPending;
 
+    useEffect(() => {
+        if (doc) {
+            setPageBreadcrumb(
+                <>
+                    <ChevronRight size={14} className="breadcrumb-sep" />
+                    <Link to="/documents" className="breadcrumb-link">Devis & Factures</Link>
+                    {doc.client && (
+                        <>
+                            <ChevronRight size={14} className="breadcrumb-sep" />
+                            <Link to={`/clients/${doc.client.id}`} className="breadcrumb-link">{doc.client.name}</Link>
+                        </>
+                    )}
+                    <ChevronRight size={14} className="breadcrumb-sep" />
+                    <span className="breadcrumb-current">{doc.type === 'quote' ? 'Devis' : 'Facture'}</span>
+                </>
+            );
+        }
+        return () => setPageBreadcrumb(null);
+    }, [doc, setPageBreadcrumb]);
+
     const startEditing = () => {
         setEditLines((doc.lines || []).map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price })));
         setIsEditing(true);
@@ -109,15 +131,6 @@ export function DocumentDetail() {
                 <div className="dd-header-left">
                     <Link to={doc.client_id ? `/clients/${doc.client_id}` : "/documents"} className="dd-back"><ArrowLeft size={18} /></Link>
                     <div>
-                        <div className="dd-breadcrumb">
-                            {doc.client && (
-                                <>
-                                    <Link to={`/clients/${doc.client.id}`} className="dd-breadcrumb-link">{doc.client.name}</Link>
-                                    <span className="dd-breadcrumb-sep">/</span>
-                                </>
-                            )}
-                            <span className="dd-breadcrumb-current">{doc.type === 'quote' ? 'Devis' : 'Facture'}</span>
-                        </div>
                         <div className="dd-header-title">
                             <h1 className="dd-title">{doc.number || 'Brouillon'}</h1>
                             <span className="dd-badge" style={{ background: conf.bg, color: conf.color }}>
@@ -334,11 +347,6 @@ const ddStyles = `
         color: var(--text-secondary); transition: all var(--transition-smooth); text-decoration: none;
     }
     .dd-back:hover { color: var(--text-primary); border-color: var(--primary); background: var(--primary-light); }
-    .dd-breadcrumb { display: flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; font-weight: 500; margin-bottom: 0.25rem; }
-    .dd-breadcrumb-link { color: var(--text-secondary); text-decoration: none; transition: color var(--transition-fast); }
-    .dd-breadcrumb-link:hover { color: var(--primary); text-decoration: underline; }
-    .dd-breadcrumb-sep { color: var(--border-light); }
-    .dd-breadcrumb-current { color: var(--text-muted); }
     .dd-header-title { display: flex; align-items: center; gap: 0.75rem; }
     .dd-title { font-size: 1.375rem; font-weight: 700; }
     .dd-badge {

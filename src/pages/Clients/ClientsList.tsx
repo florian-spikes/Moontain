@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Edit2, Archive, ArchiveRestore, Users } from 'lucide-react';
+import { Plus, Search, Users, Briefcase, FileText, Clock } from 'lucide-react';
 import { useClients } from '../../hooks/useClients';
 import { clsx } from 'clsx';
 import { ClientDrawer } from '../../components/ClientDrawer';
 
 export function ClientsList() {
-    const { clients, isLoading, error, updateClient, createClient } = useClients();
+    const { clients, isLoading, error, createClient } = useClients();
     const [showArchived, setShowArchived] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
@@ -27,11 +27,7 @@ export function ClientsList() {
             client.email?.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
-    const handleArchiveToggle = async (id: string, currentStatus: boolean) => {
-        if (confirm(currentStatus ? 'Restaurer ce client ?' : 'Archiver ce client ?')) {
-            updateClient.mutate({ id, is_archived: !currentStatus });
-        }
-    };
+
 
     return (
         <div className="cls animate-fade-in">
@@ -85,40 +81,54 @@ export function ClientsList() {
             {/* Client Cards Grid */}
             {filteredClients.length > 0 ? (
                 <div className="cls-grid">
-                    {filteredClients.map((client, i) => (
-                        <div
-                            key={client.id}
-                            className="cls-card animate-slide-up"
-                            style={{ animationDelay: `${i * 0.04}s` }}
-                        >
-                            <Link to={`/clients/${client.id}`} className="cls-card-link">
-                                <div className="cls-card-top">
-                                    <div className="cls-card-emoji">{client.emoji || '🏢'}</div>
-                                    <div className="cls-card-info">
-                                        <h3 className="cls-card-name">{client.name}</h3>
-                                        <p className="cls-card-email">{client.email || 'Pas d\'email'}</p>
+                    {filteredClients.map((client, i) => {
+                        const servicesCount = (client as any).services?.filter((s: any) => !s.end_date || new Date(s.end_date) > new Date()).length || 0;
+                        const documents = (client as any).documents || [];
+                        const totalPaid = documents.filter((d: any) => d.status === 'paid').reduce((s: any, d: any) => s + (d.total_amount || 0), 0);
+                        const totalPending = documents.filter((d: any) => ['sent', 'overdue'].includes(d.status)).reduce((s: any, d: any) => s + (d.total_amount || 0), 0);
+
+                        return (
+                            <div
+                                key={client.id}
+                                className="cls-card animate-slide-up"
+                                style={{ animationDelay: `${i * 0.04}s` }}
+                            >
+                                <Link to={`/clients/${client.id}`} className="cls-card-link">
+                                    <div className="cls-card-top">
+                                        <div className="cls-card-emoji">{client.emoji || '🏢'}</div>
+                                        <div className="cls-card-info">
+                                            <h3 className="cls-card-name">{client.name}</h3>
+                                            <p className="cls-card-email">{client.email || 'Pas d\'email'}</p>
+                                        </div>
                                     </div>
-                                </div>
-                                {client.notes && (
-                                    <p className="cls-card-notes">{client.notes}</p>
-                                )}
-                                {client.address && (
-                                    <p className="cls-card-address">{client.address}</p>
-                                )}
-                            </Link>
-                            <div className="cls-card-actions">
-                                <Link to={`/clients/${client.id}`} className="cls-card-btn cls-card-btn-edit">
-                                    <Edit2 size={14} /> Modifier
+                                    {client.notes && (
+                                        <p className="cls-card-notes">{client.notes}</p>
+                                    )}
+                                    {client.address && (
+                                        <p className="cls-card-address">{client.address}</p>
+                                    )}
+
+                                    <div className="cls-card-kpis">
+                                        <div className="cls-card-kpi">
+                                            <Briefcase size={12} className="cls-kpi-icon" />
+                                            <span className="cls-kpi-val">{servicesCount}</span>
+                                            <span className="cls-kpi-lbl">Actifs</span>
+                                        </div>
+                                        <div className="cls-card-kpi-sep" />
+                                        <div className="cls-card-kpi">
+                                            <FileText size={12} className="cls-kpi-icon" style={{ color: '#22c55e' }} />
+                                            <span className="cls-kpi-val" style={{ color: '#22c55e' }}>{totalPaid.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}€</span>
+                                        </div>
+                                        <div className="cls-card-kpi-sep" />
+                                        <div className="cls-card-kpi">
+                                            <Clock size={12} className="cls-kpi-icon" style={{ color: '#f59e0b' }} />
+                                            <span className="cls-kpi-val" style={{ color: '#f59e0b' }}>{totalPending.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}€</span>
+                                        </div>
+                                    </div>
                                 </Link>
-                                <button
-                                    onClick={() => handleArchiveToggle(client.id, client.is_archived)}
-                                    className={clsx('cls-card-btn', client.is_archived ? 'cls-card-btn-restore' : 'cls-card-btn-archive')}
-                                >
-                                    {client.is_archived ? <><ArchiveRestore size={14} /> Restaurer</> : <><Archive size={14} /> Archiver</>}
-                                </button>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             ) : (
                 <div className="cls-empty">
@@ -321,41 +331,27 @@ const clStyles = `
         color: var(--text-muted);
         margin-bottom: 0.75rem;
     }
-    .cls-card-actions {
+    .cls-card-kpis {
         display: flex;
-        gap: 0.5rem;
-        padding-top: 0.75rem;
-        border-top: 1px solid var(--border);
-    }
-    .cls-card-btn {
-        display: inline-flex;
         align-items: center;
-        gap: 0.375rem;
-        padding: 0.375rem 0.75rem;
-        border-radius: var(--radius-md);
-        font-size: 0.75rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all var(--transition-fast);
-        text-decoration: none;
-        border: none;
-        background: none;
+        margin-top: auto;
+        padding-top: 0.75rem;
+        border-top: 1px dashed var(--border);
+        gap: 0.75rem;
     }
-    .cls-card-btn-edit {
-        color: var(--primary);
-        background: var(--primary-light);
+    .cls-card-kpi {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
     }
-    .cls-card-btn-edit:hover { background: rgba(139,92,246,0.2); }
-    .cls-card-btn-archive {
-        color: var(--text-secondary);
-        background: var(--bg-surface-hover);
+    .cls-card-kpi-sep {
+        width: 1px;
+        height: 12px;
+        background: var(--border);
     }
-    .cls-card-btn-archive:hover { color: var(--danger); background: rgba(239,68,68,0.1); }
-    .cls-card-btn-restore {
-        color: var(--warning);
-        background: rgba(245,158,11,0.1);
-    }
-    .cls-card-btn-restore:hover { background: rgba(245,158,11,0.2); }
+    .cls-kpi-icon { color: var(--text-muted); }
+    .cls-kpi-val { font-size: 0.75rem; font-weight: 700; color: var(--text-primary); }
+    .cls-kpi-lbl { font-size: 0.6875rem; color: var(--text-muted); }
 
     /* Empty */
     .cls-empty {

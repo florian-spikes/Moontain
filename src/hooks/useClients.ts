@@ -11,7 +11,7 @@ export function useClients() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('clients')
-                .select('*')
+                .select('*, documents(*), services(*)')
                 .order('name');
 
             if (error) throw error;

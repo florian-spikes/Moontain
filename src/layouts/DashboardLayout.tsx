@@ -31,6 +31,7 @@ export function DashboardLayout() {
     const location = useLocation();
     const { user } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [pageBreadcrumb, setPageBreadcrumb] = useState<React.ReactNode | null>(null);
 
     const initials = user?.email
         ? user.email.split('@')[0].slice(0, 2).toUpperCase()
@@ -114,7 +115,9 @@ export function DashboardLayout() {
                         </button>
                         <div className="breadcrumb">
                             <span className="breadcrumb-root">Moontain</span>
-                            {currentItem && (
+                            {pageBreadcrumb ? (
+                                <>{pageBreadcrumb}</>
+                            ) : currentItem && (
                                 <>
                                     <ChevronRight size={14} className="breadcrumb-sep" />
                                     <span className="breadcrumb-current">{currentItem.label}</span>
@@ -125,7 +128,7 @@ export function DashboardLayout() {
                     <div className="header-avatar">{initials}</div>
                 </header>
                 <div className="main-body">
-                    <Outlet />
+                    <Outlet context={{ setPageBreadcrumb }} />
                 </div>
             </main>
 
@@ -349,6 +352,14 @@ export function DashboardLayout() {
                 .breadcrumb-current {
                     color: var(--text-primary);
                     font-weight: 600;
+                }
+                .breadcrumb-link {
+                    color: var(--text-secondary);
+                    text-decoration: none;
+                    transition: color var(--transition-fast);
+                }
+                .breadcrumb-link:hover {
+                    color: var(--text-primary);
                 }
                 .header-avatar {
                     width: 32px;

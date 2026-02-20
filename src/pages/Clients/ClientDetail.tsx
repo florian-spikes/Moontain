@@ -240,7 +240,7 @@ export function ClientDetail() {
 }
 
 const cdStyles = `
-    .cd { max-width: 960px; margin: 0 auto; padding-bottom: 2rem; }
+    .cd { max-width: 1100px; margin: 0 auto; padding-bottom: 2rem; }
     .cd-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; color: var(--text-muted); gap: 1rem; }
     .cd-spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
