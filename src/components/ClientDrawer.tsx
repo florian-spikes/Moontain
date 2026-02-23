@@ -9,7 +9,7 @@ import type { Client } from '../types';
 const clientSchema = z.object({
     name: z.string().min(1, 'Le nom est requis'),
     email: z.string().email('Email invalide').optional().or(z.literal('')),
-    website: z.string().url('URL invalide').optional().or(z.literal('')),
+    website: z.string().optional().or(z.literal('')),
     address: z.string().optional(),
     notes: z.string().optional(),
     manager_civility: z.string().optional(),
@@ -137,10 +137,10 @@ export function ClientDrawer({ isOpen, onClose, client, onSave, isSaving }: Clie
                     <div className="cd-field-group">
                         <label className="cd-lbl"><Globe size={14} /> Site web <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optionnel)</span></label>
                         <input
-                            type="url"
+                            type="text"
                             {...register('website')}
                             className={`cd-input ${errors.website ? 'cd-input-error' : ''}`}
-                            placeholder="https://example.com"
+                            placeholder="ex: www.monsite.fr"
                         />
                         {errors.website && <p className="cd-error">{errors.website.message}</p>}
                     </div>
