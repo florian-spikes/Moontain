@@ -519,4 +519,8 @@ const dashStyles = `
     @media (max-width: 600px) {
         .dash-kpis { grid-template-columns: 1fr; }
     }
+    @media (max-width: 480px) {
+        .dash-doc-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+        .dash-doc-row > div:last-child { align-self: flex-start; text-align: left; }
+    }
 `;

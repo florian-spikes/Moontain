@@ -169,7 +169,7 @@ const cdDrawerStyles = `
     .cd-overlay { position: fixed; inset: 0; z-index: 100; display: flex; justify-content: flex-end; }
     .cd-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); animation: fadeIn 0.2s; }
     .cd-panel {
-        position: relative; width: 100%; max-width: 550px; height: 100%;
+        position: relative; width: 100%; max-width: 550px; height: 100dvh; max-height: 100dvh;
         background: var(--bg-card); border-left: 1px solid var(--border);
         box-shadow: -4px 0 24px rgba(0,0,0,0.1);
         display: flex; flex-direction: column;
@@ -225,4 +225,14 @@ const cdDrawerStyles = `
     @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
     .animate-slide-in-right { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    @media (max-width: 480px) {
+        .cd-header-bar { padding: 1rem; }
+        .cd-body { padding: 1rem; gap: 1rem; }
+        .cd-manager-grid { grid-template-columns: 1fr; }
+        .cd-footer-bar { padding: 1rem; padding-bottom: max(1rem, env(safe-area-inset-bottom)); flex-direction: column-reverse; }
+        .cd-cancel-btn { width: 100%; text-align: center; }
+        .cd-save-btn { width: 100%; justify-content: center; }
+        .cd-panel { max-width: 100%; }
+    }
 `;

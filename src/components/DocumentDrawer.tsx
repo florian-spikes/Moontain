@@ -330,7 +330,7 @@ const docDrawerStyles = `
     .docd-overlay { position: fixed; inset: 0; z-index: 100; display: flex; justify-content: flex-end; }
     .docd-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); animation: fadeIn 0.2s; }
     .docd-panel {
-        position: relative; width: 100%; max-width: 720px; height: 100%;
+        position: relative; width: 100%; max-width: 720px; height: 100dvh; max-height: 100dvh;
         background: var(--bg-card); border-left: 1px solid var(--border);
         box-shadow: -4px 0 24px rgba(0,0,0,0.1);
         display: flex; flex-direction: column;
@@ -499,5 +499,9 @@ const docDrawerStyles = `
     @media (max-width: 480px) {
         .docd-line-nums { grid-template-columns: 1fr 1fr; }
         .docd-line-remove { grid-column: span 2; width: 100%; }
+        .docd-header-bar { padding: 1.25rem 1rem; }
+        .docd-body { padding: 1rem; }
+        .docd-footer-bar { padding: 1rem; padding-bottom: max(1rem, env(safe-area-inset-bottom)); flex-direction: column-reverse; }
+        .docd-save-btn, .docd-cancel-btn { width: 100%; justify-content: center; }
     }
 `;

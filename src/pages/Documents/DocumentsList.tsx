@@ -256,20 +256,23 @@ const dlStyles = `
         display: flex;
         gap: 1.25rem;
         overflow-x: auto;
-        padding-bottom: 1rem;
+        padding-bottom: 2rem;
         flex: 1;
         align-items: flex-start;
         min-height: 500px;
+        width: 100%;
+        scroll-snap-type: x mandatory;
     }
     .dl-k-col {
         flex: 1;
-        min-width: 280px;
+        min-width: 260px;
         background: rgba(0,0,0,0.02);
         border-radius: var(--radius-xl);
         padding: 1rem;
         display: flex;
         flex-direction: column;
         border: 1px dashed transparent;
+        scroll-snap-align: start;
     }
     .dl-k-col-head {
         display: flex;

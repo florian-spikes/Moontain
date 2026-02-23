@@ -193,7 +193,7 @@ const edStyles = `
     .ed-overlay { position: fixed; inset: 0; z-index: 100; display: flex; justify-content: flex-end; }
     .ed-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); animation: fadeIn 0.2s; }
     .ed-panel {
-        position: relative; width: 100%; max-width: 500px; height: 100%;
+        position: relative; width: 100%; max-width: 500px; height: 100dvh; max-height: 100dvh;
         background: var(--bg-card); border-left: 1px solid var(--border);
         box-shadow: -4px 0 24px rgba(0,0,0,0.1);
         display: flex; flex-direction: column;
@@ -251,4 +251,11 @@ const edStyles = `
     .animate-slide-in-right { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 480px) {
+        .ed-header { padding: 1rem; }
+        .ed-body { padding: 1rem; }
+        .ed-footer { padding: 1rem; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+        .ed-panel { max-width: 100%; }
+    }
 `;
