@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { X, Save, Loader2, User, Mail, MapPin, StickyNote } from 'lucide-react';
+import { X, Save, Loader2, User, Mail, MapPin, StickyNote, Globe } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
 import type { Client } from '../types';
 
 const clientSchema = z.object({
     name: z.string().min(1, 'Le nom est requis'),
     email: z.string().email('Email invalide').optional().or(z.literal('')),
+    website: z.string().url('URL invalide').optional().or(z.literal('')),
     address: z.string().optional(),
     notes: z.string().optional(),
     manager_civility: z.string().optional(),
@@ -34,6 +35,7 @@ export function ClientDrawer({ isOpen, onClose, client, onSave, isSaving }: Clie
         defaultValues: {
             name: client?.name || '',
             email: client?.email || '',
+            website: client?.website || '',
             address: client?.address || '',
             notes: client?.notes || '',
             manager_civility: client?.manager_civility || '',
@@ -48,6 +50,7 @@ export function ClientDrawer({ isOpen, onClose, client, onSave, isSaving }: Clie
             reset({
                 name: client?.name || '',
                 email: client?.email || '',
+                website: client?.website || '',
                 address: client?.address || '',
                 notes: client?.notes || '',
                 manager_civility: client?.manager_civility || '',
@@ -61,6 +64,7 @@ export function ClientDrawer({ isOpen, onClose, client, onSave, isSaving }: Clie
         await onSave({
             ...data,
             email: data.email || null,
+            website: data.website || null,
             address: data.address || null,
             notes: data.notes || null,
             manager_civility: data.manager_civility || null,
@@ -128,6 +132,17 @@ export function ClientDrawer({ isOpen, onClose, client, onSave, isSaving }: Clie
                             placeholder="contact@example.com"
                         />
                         {errors.email && <p className="cd-error">{errors.email.message}</p>}
+                    </div>
+
+                    <div className="cd-field-group">
+                        <label className="cd-lbl"><Globe size={14} /> Site web <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optionnel)</span></label>
+                        <input
+                            type="url"
+                            {...register('website')}
+                            className={`cd-input ${errors.website ? 'cd-input-error' : ''}`}
+                            placeholder="https://example.com"
+                        />
+                        {errors.website && <p className="cd-error">{errors.website.message}</p>}
                     </div>
 
                     <div className="cd-field-group">

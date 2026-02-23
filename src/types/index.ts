@@ -4,6 +4,7 @@ export interface Client {
     updated_at: string;
     name: string;
     email: string | null;
+    website: string | null;
     address: string | null;
     notes: string | null;
     emoji: string | null;

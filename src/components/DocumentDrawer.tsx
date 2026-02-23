@@ -117,7 +117,7 @@ export function DocumentDrawer({ isOpen, onClose, document, initialClientId, def
             type: document?.type || defaultType || 'invoice',
             date: document?.date || format(new Date(), 'yyyy-MM-dd'),
             due_date: document?.due_date || format(addDays(new Date(), 30), 'yyyy-MM-dd'),
-            lines: document?.lines && document.lines.length > 0 ? document.lines : [{ name: '', description: '', quantity: 1, unit_price: 0 }]
+            lines: document?.lines && document.lines.length > 0 ? document.lines : []
         }
     });
 
@@ -135,7 +135,7 @@ export function DocumentDrawer({ isOpen, onClose, document, initialClientId, def
                 type: document?.type || defaultType || 'invoice',
                 date: document?.date || format(new Date(), 'yyyy-MM-dd'),
                 due_date: document?.due_date || format(addDays(new Date(), 30), 'yyyy-MM-dd'),
-                lines: document?.lines && document.lines.length > 0 ? document.lines : [{ name: '', description: '', quantity: 1, unit_price: 0 }],
+                lines: document?.lines && document.lines.length > 0 ? document.lines : [],
             });
         }
     }, [isOpen, document, initialClientId, defaultType, reset]);

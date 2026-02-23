@@ -54,6 +54,7 @@ export function Dashboard() {
         await createClient.mutateAsync({
             name: data.name!,
             email: data.email || null,
+            website: data.website || null,
             address: data.address || null,
             notes: data.notes || null,
             emoji: data.emoji || '🏢',

@@ -6,7 +6,7 @@ import { format, parseISO } from 'date-fns';
 import {
     ArrowLeft, FileText, Receipt, Edit2,
     DollarSign, Clock, CheckCircle, AlertCircle, Send,
-    Hash, Briefcase, Mail
+    Hash, Briefcase, Mail, Globe
 } from 'lucide-react';
 import type { Client, Document, Service, DocumentStatus } from '../../types';
 import { useState } from 'react';
@@ -104,6 +104,14 @@ export function ClientDetail() {
                         <h1 className="cd-name">{client.name}</h1>
                         <div className="cd-meta">
                             {client.email && <span><Mail size={12} /> {client.email}</span>}
+                            {client.website && (
+                                <span style={{ marginLeft: '1rem' }}>
+                                    <Globe size={12} />
+                                    <a href={client.website.startsWith('http') ? client.website : `https://${client.website}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+                                        {client.website.replace(/^https?:\/\//, '')}
+                                    </a>
+                                </span>
+                            )}
                             {client.address && <span style={{ marginLeft: '1rem' }}>{client.address}</span>}
                         </div>
                     </div>
